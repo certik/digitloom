@@ -42,7 +42,7 @@ would be `https://certik.github.io/digitloom/`; a custom domain is optional.
 - An inline sound key with keyboard and touch support.
 - Consistent compact navigation on every page, with a bold current-page label
   and an external-link indicator for GitHub. The DigitLoom brand returns to the
-  word builder; on narrow screens, its icon keeps the menu on one line.
+  word builder; on narrow screens, its icon keeps the menu in one compact row.
 - Leading zeros, alternate pronunciations, and arbitrarily long inputs.
 - Local gzip decoding and a JSON path for browsers without a native decoder.
 

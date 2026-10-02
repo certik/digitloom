@@ -230,13 +230,16 @@ test('the inline sound key works with keyboard and touch without covering the bu
 });
 
 test('all pages keep the same compact menu with current-page and external-site indicators', async ({ page }) => {
-  for (const viewport of [page.viewportSize(), { width: 320, height: 568 }]) {
+  for (const [viewport, wideFont] of [
+    [page.viewportSize(), false], [{ width: 320, height: 568 }, false], [{ width: 320, height: 568 }, true]
+  ]) {
     await page.setViewportSize(viewport);
     let headerBounds;
     for (const [path, currentPage] of [
       ['index.html', 'DigitLoom'], ['guide.html', 'How it works'], ['sources.html', 'Data & licenses']
     ]) {
       await page.goto(`/web/${path}`);
+      if (wideFont) await page.addStyleTag({ content: 'nav { font-family: Verdana, sans-serif; }' });
       const menu = page.getByRole('navigation', { name: 'Site', exact: true });
       const items = menu.locator(':scope > *');
       await expect(items).toHaveText(['DigitLoom', 'How it works', 'Data & licenses', 'GitHub \u2197']);
