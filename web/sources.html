@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Data &amp; licenses - DigitLoom</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html"><img src="icon.svg" width="32" height="32" alt="">DigitLoom</a>
+    <nav aria-label="Site"><a href="index.html">Word builder</a><a href="guide.html">How it works</a></nav>
+  </header>
+  <main class="page article">
+    <p class="eyebrow">Open data, traceable origins</p>
+    <h1>Meet the word library.</h1>
+    <p>DigitLoom combines pronunciations, word frequencies, and grammatical hints
+      from three open datasets. Its build records immutable source revisions and
+      SHA-256 checksums so the dictionary can be reproduced and inspected.</p>
+    <h2>CMUdict supplies the sounds</h2>
+    <p>The <a href="https://github.com/cmusphinx/cmudict">Carnegie Mellon
+      Pronouncing Dictionary</a> is Copyright 1993-2015 Carnegie Mellon
+      University. DigitLoom translates its ARPABET pronunciations into digits.
+      Alternate pronunciations with distinct codes are kept; identical word/code
+      pairs are merged. The source's <a href="licenses/CMUdict.txt">license and
+      disclaimer</a> are included unchanged.</p>
+    <h2>wordfreq puts familiar words first</h2>
+    <p>Ranking uses the English large frequency list from
+      <a href="https://github.com/rspeer/wordfreq/tree/v3.2">wordfreq v3.2</a>,
+      Copyright 2022 Robyn Speer. DigitLoom reads frequency bins for exact
+      lowercase spellings, not wordfreq's tokenization or phrase estimation.
+      Frequency ties are alphabetical; words missing from the frequency list
+      remain available at the end of their group.</p>
+    <p>The data is licensed under
+      <a href="licenses/CC-BY-SA-4.0.txt">Creative Commons
+      Attribution-ShareAlike 4.0 International</a>. The full
+      <a href="licenses/wordfreq-NOTICE.txt">wordfreq attribution notice</a>
+      covers its contributors and source terms.</p>
+    <p>Source-corpus credit includes Google Books Ngrams and Syntactic Ngrams,
+      the Leeds Internet Corpus, Wikipedia, ParaCrawl, OPUS OpenSubtitles 2018
+      and the OpenSubtitles project, and the SUBTLEX authors including Marc
+      Brysbaert and colleagues. <strong>SUBTLEX is freely available data.</strong>
+      Source links and additional conditions are provided in the notice.</p>
+    <h2>WordNet adds grammatical hints</h2>
+    <p>WordNet 3.0 Copyright 2006 by Princeton University. All rights reserved.
+      DigitLoom uses noun, verb, and adjective indexes and exception lists from
+      <a href="https://github.com/nltk/nltk_data">NLTK's WordNet 3.0 distribution</a>.
+      Inflected forms are matched to indexed lemmas where possible. This is a
+      modified, derived use, not the original WordNet database. Its
+      <a href="licenses/WordNet.txt">license and disclaimer</a> remain attached.</p>
+    <h2>Using and sharing the results</h2>
+    <p>DigitLoom's project-authored software is MIT licensed. The combined
+      dictionary has different terms: the
+      <a href="data/db.json">readable JSON</a> and its equivalent
+      <a href="data/db.txt.gz">compact gzip download</a> are distributed under
+      <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>
+      with all the source notices retained. Keep the attributions, identify your
+      modifications, and follow the share-alike terms when redistributing or
+      adapting the data. The code license does not replace the data licenses.</p>
+    <h2>What the build changes</h2>
+    <p>The build turns phonemes into digit strings, assigns frequency ranks and
+      possible parts of speech, and groups words by exact code. It does not guess
+      pronunciations from spelling. Stress and most vowels are ignored, but the
+      r-colored vowel ER encodes 4. TH and DH encode 1, NG encodes 2, and ZH
+      encodes 6. Each repeated consonant sound contributes its own digit.</p>
+    <p>Pronunciations without any encoded digits cannot advance a number and are
+      excluded from suggestions. Source metadata lists these exclusions.
+      A source dictionary can contain errors or omit a pronunciation; its
+      coverage is not a claim to include every English word or accent.</p>
+    <p>The compact download separates word spellings and part-of-speech masks
+      into columns, orders code groups for compression, and applies gzip.
+      Unpacking restores the complete ranked dictionary and source metadata.
+      Browsers with native decompression use it directly; others load JSON.
+      No externally hosted decoder is needed.</p>
+  </main>
+  <footer class="site-footer"><p>DigitLoom. Built with open data and a little imagination.</p></footer>
+</body>
+</html>

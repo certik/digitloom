@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="DigitLoom turns numbers into memorable words with a private, offline-ready phonetic dictionary.">
+  <meta name="theme-color" content="#f7f5f0">
+  <title>DigitLoom - Give numbers a memorable shape</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#workspace">Skip to the word builder</a>
+  <header class="site-header">
+    <a class="brand" href="index.html"><img src="icon.svg" width="32" height="32" alt="">DigitLoom</a>
+    <nav aria-label="Site"><a href="guide.html">How it works</a><a href="sources.html">Data &amp; licenses</a></nav>
+  </header>
+  <main class="page" id="workspace">
+    <section class="introduction" aria-labelledby="page-title">
+      <p class="eyebrow">A little imagination. A lasting memory.</p>
+      <h1 id="page-title">Give numbers<br>a memorable shape.</h1>
+      <p>Trade a string of digits for a scene you can picture. Choose the sounds,
+        collect the words, and make the number your own.</p>
+    </section>
+
+    <section class="composer" aria-label="Word builder">
+      <div class="input-row">
+        <div class="number-field">
+          <label for="number">Your number</label>
+          <input id="number" type="text" inputmode="numeric" autocomplete="off" spellcheck="false"
+            placeholder="Try 3277" aria-describedby="number-hint input-error" disabled>
+          <p class="hint" id="number-hint">Digits and spaces welcome. Leading zeros stay exactly as entered.</p>
+        </div>
+        <button id="clear" class="button secondary" type="button" disabled>Clear</button>
+      </div>
+      <p id="input-error" class="error" role="alert" hidden></p>
+      <div class="sequence-header">
+        <h2>Your memory thread</h2>
+        <button id="undo" class="button secondary" type="button" disabled>Undo word</button>
+      </div>
+      <ol id="sequence" class="sequence" aria-label="Selected words" aria-live="polite"></ol>
+      <p id="sequence-hint" class="hint">Your word sequence will appear here.</p>
+      <div class="progress-row">
+        <progress id="progress" max="1" value="0" aria-label="Digits encoded"></progress>
+        <span id="progress-label">No digits yet</span>
+      </div>
+    </section>
+
+    <details class="sound-key" id="sound-key">
+      <summary>Sound key <span>The ten building blocks</span></summary>
+      <p>Listen to the consonants, not the spelling. Vowels, h, w, and y leave room for imagination.</p>
+      <dl class="sound-grid">
+        <div><dt>0 <span>s, z</span></dt><dd>ice</dd></div>
+        <div><dt>1 <span>t, d, th</span></dt><dd>hat</dd></div>
+        <div><dt>2 <span>n, ng</span></dt><dd>knee</dd></div>
+        <div><dt>3 <span>m</span></dt><dd>ham</dd></div>
+        <div><dt>4 <span>r</span></dt><dd>ray</dd></div>
+        <div><dt>5 <span>l</span></dt><dd>owl</dd></div>
+        <div><dt>6 <span>j, sh, ch, zh</span></dt><dd>shoe</dd></div>
+        <div><dt>7 <span>k, g</span></dt><dd>key</dd></div>
+        <div><dt>8 <span>f, v</span></dt><dd>ivy</dd></div>
+        <div><dt>9 <span>p, b</span></dt><dd>bee</dd></div>
+      </dl>
+      <a href="guide.html">Explore the sound rules</a>
+    </details>
+
+    <section class="options-area" aria-labelledby="step-title">
+      <div class="options-header">
+        <div><p class="eyebrow">Build one word at a time</p><h2 id="step-title" aria-live="polite">Type digits to begin</h2></div>
+        <p class="hint">Longest codes first.<br>Common words lead each group.</p>
+      </div>
+      <p class="options-note">Small labels describe possible grammatical roles.
+        Words without a label have no grammar hint in the dictionary.</p>
+      <p id="empty-options" class="empty-options">Try <strong>3277</strong>: a moon, a cake, a scene to remember.</p>
+      <div id="options"></div>
+    </section>
+    <p id="library-error" class="error" role="alert" hidden></p>
+    <noscript><p class="error">DigitLoom needs JavaScript to search the dictionary in your browser.</p></noscript>
+  </main>
+  <footer class="site-footer">
+    <p id="library-status" role="status">Opening the word library...</p>
+    <p>Your numbers stay in this browser. <a href="sources.html">Meet the open data behind DigitLoom.</a></p>
+  </footer>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

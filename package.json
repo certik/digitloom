@@ -1,0 +1,23 @@
+{
+  "name": "digitloom",
+  "version": "1.0.0",
+  "description": "Turn numbers into memorable words using an offline phonetic dictionary.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:data": "node scripts/build-db.mjs",
+    "benchmark:compression": "node scripts/benchmark-compression.mjs",
+    "serve": "python3 -m http.server 8000 --bind 127.0.0.1 --directory web",
+    "test:unit": "node --test test/*.test.mjs && python3 -m unittest discover -s test -p '*_test.py'",
+    "test:data": "node scripts/build-db.mjs --check",
+    "test:browser": "playwright test",
+    "test": "npm run test:unit && npm run test:browser"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

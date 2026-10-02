@@ -1,0 +1,27 @@
+DigitLoom licensing
+
+Project-authored software is licensed under the MIT License in LICENSE.
+This does not override the separate licenses of the dictionary data or
+third-party dependencies.
+
+web/data/db.json and web/data/db.txt.gz are modified, combined datasets
+distributed under Creative Commons Attribution-ShareAlike 4.0 International.
+Retain the source attributions and indicate changes when redistributing them.
+
+Pronunciations:
+CMU Pronouncing Dictionary, Carnegie Mellon University.
+See web/licenses/CMUdict.txt.
+
+Word frequency:
+wordfreq, Copyright 2022 Robyn Speer.
+Includes contributions from the source corpora named in
+web/licenses/wordfreq-NOTICE.txt. Credit includes Marc Brysbaert and the other
+SUBTLEX authors. SUBTLEX is freely available data.
+See web/licenses/CC-BY-SA-4.0.txt.
+
+Parts of speech:
+WordNet 3.0 Copyright 2006 by Princeton University. All rights reserved.
+See web/licenses/WordNet.txt.
+
+web/sources.html describes source versions, transformations, and attribution.
+scripts/dictionary-sources.json records pinned revisions and file hashes.

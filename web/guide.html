@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How it works - DigitLoom</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html"><img src="icon.svg" width="32" height="32" alt="">DigitLoom</a>
+    <nav aria-label="Site"><a href="index.html">Word builder</a><a href="sources.html">Data &amp; licenses</a></nav>
+  </header>
+  <main class="page article">
+    <p class="eyebrow">The mnemonic major system</p>
+    <h1>A number you can picture.</h1>
+    <p>A string of digits is abstract. An image is something your memory can
+      work with. The major system connects ten digits to ten families of speech
+      sounds, so you can turn a number into words and imagine a scene.</p>
+    <h2>Start with a small scene</h2>
+    <div class="example">
+      <p><strong>3277 becomes moon cake.</strong> In <em>moon</em>, m gives 3
+        and n gives 2. In <em>cake</em>, the two k sounds give 77.</p>
+      <p>Picture a cake so enormous that it rests on the moon. The stranger the
+        scene feels to you, the easier it may be to bring back later.</p>
+      <a href="index.html">Build your own memory thread</a>
+    </div>
+    <h2>Hear the word, then read the digits</h2>
+    <p>Pronunciation decides the code. For example, the final sound of
+      <em>ice</em> is s, so its code is 0. Silent letters do not add digits.
+      Most vowels, along with h, w, and y sounds, can be ignored.</p>
+    <table>
+      <thead><tr><th>Digit</th><th>Sound family</th><th>One example</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>s, z</td><td>ice</td></tr>
+        <tr><td>1</td><td>t, d, both th sounds</td><td>hat</td></tr>
+        <tr><td>2</td><td>n, ng</td><td>knee</td></tr>
+        <tr><td>3</td><td>m</td><td>ham</td></tr>
+        <tr><td>4</td><td>r, including r-colored vowels</td><td>ray</td></tr>
+        <tr><td>5</td><td>l</td><td>owl</td></tr>
+        <tr><td>6</td><td>j, sh, ch, zh</td><td>shoe</td></tr>
+        <tr><td>7</td><td>k, hard g</td><td>key</td></tr>
+        <tr><td>8</td><td>f, v</td><td>ivy</td></tr>
+        <tr><td>9</td><td>p, b</td><td>bee</td></tr>
+      </tbody>
+    </table>
+    <p>Count repeated sounds separately. The s and z in <em>says</em> give 00,
+      even with a vowel between them. DigitLoom uses CMUdict's mostly North
+      American pronunciations; a word can have more than one valid code when
+      the dictionary gives different ways to say it.</p>
+    <h2>Choose how much to remember at once</h2>
+    <p>Enter your digits in the word builder. Suggestions cover the beginning of
+      the unencoded part, grouped by code length. The longest groups come first;
+      the more common words lead each group. A group's heading tells you how
+      many digits its words cover. Each button's description gives the exact
+      code.</p>
+    <p>Choose a word and the remaining digits get their own suggestions.
+      <strong>Undo word</strong> takes back one choice. <strong>Clear</strong>
+      starts a new thread. Editing the number also starts over. Spaces are
+      ignored during input; leading zeros remain part of the number.</p>
+    <p>Words cover at least two digits while two or more remain. When just one
+      digit remains, one-digit words are offered. There is no five-digit limit:
+      long words can cover longer stretches, and a sequence can encode a number
+      of any length.</p>
+    <h2>A little help from grammar</h2>
+    <p>A small text label beneath a word lists its possible roles, such as
+      "noun", "verb", or "noun, verb, adjective". All word spellings use the
+      same typography; the labels carry the grammatical information. An
+      unlabeled word has no matching hint. These are possibilities from WordNet,
+      not a grammar check or a promise that a particular phrase makes sense.</p>
+    <h2>Local by design</h2>
+    <p>DigitLoom downloads its dictionary once and does the matching in your
+      browser. Your numbers and selected words are not sent to a service or
+      saved in an account. The dictionary includes all usable pronunciations
+      in our pinned CMUdict source, not every English word.</p>
+    <p><a href="sources.html">Read about the data, build process, and licenses.</a></p>
+  </main>
+  <footer class="site-footer"><p>DigitLoom. Give numbers a memorable shape.</p></footer>
+</body>
+</html>

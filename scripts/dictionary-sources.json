@@ -1,0 +1,32 @@
+{
+  "cmudict": {
+    "name": "CMU Pronouncing Dictionary",
+    "revision": "74790861f652b15e4ac49015a90074ad62a27690",
+    "url": "https://raw.githubusercontent.com/cmusphinx/cmudict/74790861f652b15e4ac49015a90074ad62a27690/cmudict.dict",
+    "file": "cmudict.dict",
+    "sha256": "81917843c7f44ce2b094ac63873c2c7a4cf802040792c455ba3ca406891c3d22",
+    "license": "BSD-2-Clause",
+    "notice": "licenses/CMUdict.txt",
+    "noticeSha256": "bd4ce8e44170a5f9f481310ca85c51de3c4f851a65e679b40e603b143bd3542a"
+  },
+  "wordfreq": {
+    "name": "wordfreq English large frequency list, v3.2",
+    "revision": "42233e6c36ce792031bcccfa17cdd0cec9af5fa7",
+    "url": "https://raw.githubusercontent.com/rspeer/wordfreq/42233e6c36ce792031bcccfa17cdd0cec9af5fa7/wordfreq/data/large_en.msgpack.gz",
+    "file": "large_en.msgpack.gz",
+    "sha256": "dffae8066b78dce0a6667cf5f58e567054f902674667090a7ac8a8a44628b05c",
+    "license": "CC-BY-SA-4.0",
+    "notice": "licenses/wordfreq-NOTICE.txt",
+    "noticeSha256": "d9b104dafe63886af55e7cea7484824e32e12d4e1f57f319923dd643b36d6b15"
+  },
+  "wordnet": {
+    "name": "Princeton WordNet 3.0, distributed by NLTK",
+    "revision": "550b6625bcef1f2abff2ff770a5a0d272c9c6b2a",
+    "url": "https://raw.githubusercontent.com/nltk/nltk_data/550b6625bcef1f2abff2ff770a5a0d272c9c6b2a/packages/corpora/wordnet.zip",
+    "file": "wordnet.zip",
+    "sha256": "cbda5ea6eef7f36a97a43d4a75f85e07fccbb4f23657d27b4ccbc93e2646ab59",
+    "license": "WordNet-3.0",
+    "notice": "licenses/WordNet.txt",
+    "noticeSha256": "7731175a77952e259390b496fab905e57118b8d19ad3a8383c67eee724ff443f"
+  }
+}
