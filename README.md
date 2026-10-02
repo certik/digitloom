@@ -1,5 +1,7 @@
 # DigitLoom
 
+Online: https://certik.github.io/digitloom/
+
 **Give numbers a memorable shape.**
 
 DigitLoom turns digit sequences into words using the mnemonic major system.
