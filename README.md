@@ -40,7 +40,9 @@ would be `https://certik.github.io/digitloom/`; a custom domain is optional.
 - A memory thread, encoded-digit progress, and Undo word shown after a choice,
   plus Clear to start over.
 - An inline sound key with keyboard and touch support.
-- A GitHub repository link in the site navigation.
+- Consistent compact navigation on every page, with a bold current-page label
+  and an external-link indicator for GitHub. The DigitLoom brand returns to the
+  word builder; on narrow screens, its icon keeps the menu in one compact row.
 - Leading zeros, alternate pronunciations, and arbitrarily long inputs.
 - Local gzip decoding and a JSON path for browsers without a native decoder.
 
