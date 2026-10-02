@@ -229,6 +229,47 @@ test('the inline sound key works with keyboard and touch without covering the bu
   await expect(choose(page, 'moon', '32')).toBeVisible();
 });
 
+test('all pages keep the same compact menu with current-page and external-site indicators', async ({ page }) => {
+  for (const viewport of [page.viewportSize(), { width: 320, height: 568 }]) {
+    await page.setViewportSize(viewport);
+    let headerBounds;
+    for (const [path, currentPage] of [
+      ['index.html', 'DigitLoom'], ['guide.html', 'How it works'], ['sources.html', 'Data & licenses']
+    ]) {
+      await page.goto(`/web/${path}`);
+      const menu = page.getByRole('navigation', { name: 'Site', exact: true });
+      const items = menu.locator(':scope > *');
+      await expect(items).toHaveText(['DigitLoom', 'How it works', 'Data & licenses', 'GitHub \u2197']);
+      const current = menu.locator('[aria-current="page"]');
+      await expect(current).toHaveCount(1);
+      await expect(current).toHaveText(currentPage);
+      await expect(current).not.toHaveAttribute('href');
+      await expect(menu.getByRole('link', { name: currentPage, exact: true })).toHaveCount(0);
+      expect(await current.evaluate((element) => element.tabIndex)).toBe(-1);
+      expect(await current.evaluate((element) => Number(getComputedStyle(element).fontWeight))).toBeGreaterThanOrEqual(700);
+      const github = menu.getByRole('link', { name: 'GitHub', exact: true });
+      await expect(github).toHaveAttribute('href', 'https://github.com/certik/digitloom');
+      await expect(github).toHaveAccessibleDescription('External site');
+      await expect(github.locator('[aria-hidden="true"]')).toBeVisible();
+      await github.focus();
+      await expect(github).toBeFocused();
+      const bounds = await page.locator('.site-header').boundingBox();
+      expect(bounds.y).toBe(0);
+      expect(bounds.height).toBeLessThanOrEqual(70);
+      if (headerBounds) expect(bounds).toEqual(headerBounds);
+      headerBounds = bounds;
+      for (const item of await items.all()) {
+        await expect(item).toBeInViewport({ ratio: 1 });
+        const box = await item.boundingBox();
+        expect(box.x).toBeGreaterThanOrEqual(bounds.x);
+        expect(box.x + box.width).toBeLessThanOrEqual(bounds.x + bounds.width);
+        expect(box.y + box.height / 2).toBeCloseTo(bounds.y + (bounds.height - 1) / 2, 1);
+      }
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
+    }
+  }
+});
+
 test('guide, source notices, and navigation work at root and subdirectory URLs', async ({ page }) => {
   for (const root of ['/web/', 'http://127.0.0.1:4174/']) {
     await page.goto(root);
@@ -256,7 +297,12 @@ test('guide, source notices, and navigation work at root and subdirectory URLs',
       expect(response.ok()).toBe(true);
       expect((await response.text()).length).toBeGreaterThan(1000);
     }
-    await page.getByRole('link', { name: 'Word builder', exact: true }).click();
+    await page.getByRole('link', { name: 'DigitLoom', exact: true }).click();
+    await expect(page.locator('#number')).toBeEnabled();
+    await page.getByRole('navigation', { name: 'Site', exact: true })
+      .getByRole('link', { name: 'Data & licenses', exact: true }).click();
+    await expect(page).toHaveTitle('Data & licenses - DigitLoom');
+    await page.getByRole('link', { name: 'DigitLoom', exact: true }).click();
     await expect(page.locator('#number')).toBeEnabled();
   }
 });
