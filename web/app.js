@@ -5,11 +5,13 @@ const number = document.querySelector('#number');
 const clear = document.querySelector('#clear');
 const undo = document.querySelector('#undo');
 const sequence = document.querySelector('#sequence');
-const sequenceHint = document.querySelector('#sequence-hint');
+const memoryThread = document.querySelector('#memory-thread');
+const workspace = document.querySelector('#workspace');
 const inputError = document.querySelector('#input-error');
 const progress = document.querySelector('#progress');
 const progressLabel = document.querySelector('#progress-label');
 const heading = document.querySelector('#step-title');
+const optionsArea = document.querySelector('.options-area');
 const options = document.querySelector('#options');
 const emptyOptions = document.querySelector('#empty-options');
 const libraryStatus = document.querySelector('#library-status');
@@ -24,6 +26,7 @@ function choose(entry) {
   thread = chooseCandidate(thread, entry);
   number.value = formatNumber(thread.selected, thread.remaining);
   refresh();
+  window.scrollTo(0, 0);
   (options.querySelector('button') ?? undo).focus({ preventScroll: true });
 }
 
@@ -81,7 +84,9 @@ function refresh() {
   number.setAttribute('aria-invalid', String(Boolean(error)));
   undo.disabled = thread.selected.length === 0;
   clear.disabled = number.value.length === 0;
-  sequenceHint.hidden = thread.selected.length > 0;
+  memoryThread.hidden = thread.selected.length === 0;
+  workspace.classList.toggle('has-input', number.value.length > 0);
+  optionsArea.hidden = !total && !error;
   sequence.replaceChildren(...thread.selected.map(([word, code]) => {
     const item = document.createElement('li');
     const digits = document.createElement('small');
@@ -96,6 +101,7 @@ function refresh() {
 
   const candidates = dictionary && !error ? getCandidates(dictionary, thread.remaining) : [];
   showGroups(candidates);
+  heading.classList.toggle('visually-hidden', candidates.length > 0);
   emptyOptions.hidden = candidates.length > 0 || (total > 0 && !thread.remaining && !error);
   if (error) {
     heading.textContent = 'Check your number';
@@ -151,6 +157,7 @@ async function openLibrary() {
   }
   number.disabled = false;
   libraryStatus.textContent = `${dictionary.source.pairCount.toLocaleString('en-US')} word encodings, ready in your browser.`;
+  libraryStatus.classList.add('visually-hidden');
   refresh();
 }
 

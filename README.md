@@ -30,11 +30,15 @@ would be `https://certik.github.io/digitloom/`; a custom domain is optional.
 
 ## Features
 
+- An input-first home page that moves up as you type, with suggestions directly
+  beneath the number. Instructions and data details live on separate pages.
 - Word groups ordered by encoded length, longest first.
 - Common words first within each length, with alphabetical frequency ties.
-- Uniform word typography with explicit text labels for grammatical hints.
-- A visible memory thread, encoded-digit progress, Undo word, and Clear.
+- Top-aligned word spellings with plain-text grammatical hints underneath.
+- A memory thread, encoded-digit progress, and Undo word shown after a choice,
+  plus Clear to start over.
 - An inline sound key with keyboard and touch support.
+- A GitHub repository link in the site navigation.
 - Leading zeros, alternate pronunciations, and arbitrarily long inputs.
 - Local gzip decoding and a JSON path for browsers without a native decoder.
 

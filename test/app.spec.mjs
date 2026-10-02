@@ -23,12 +23,75 @@ test.afterEach(async ({ page }) => {
   expect(problems.get(page)).toEqual([]);
 });
 
+test('the prompt moves up and suggestions fit without scrolling, even in a short viewport', async ({ page }) => {
+  const input = page.getByLabel('Your number', { exact: true });
+  for (const viewport of [page.viewportSize(), { width: 320, height: 568 }, { width: 375, height: 400 }]) {
+    await page.setViewportSize(viewport);
+    await expect(page.locator('.options-area')).toBeHidden();
+    await expect(page.locator('#memory-thread')).toBeHidden();
+    const idle = await input.boundingBox();
+    expect(idle.y).toBeGreaterThanOrEqual(viewport.height * 0.2);
+    expect(idle.y + idle.height).toBeLessThan(viewport.height * 0.55);
+    await input.pressSequentially('3');
+    await expect(page.locator('.word-choice').first()).toBeVisible();
+    await input.pressSequentially('43434');
+    await expect(page.locator('.options-area')).toBeVisible();
+    await expect(page.locator('#memory-thread')).toBeHidden();
+    const active = await input.boundingBox();
+    const firstWord = await page.locator('.word-choice').first().boundingBox();
+    expect(active.y).toBeLessThan(idle.y);
+    expect(active.y).toBeLessThan(140);
+    expect(firstWord.y - (active.y + active.height)).toBeLessThan(65);
+    expect(firstWord.y + firstWord.height).toBeLessThan(Math.min(300, viewport.height * 0.7));
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
+    await page.getByRole('button', { name: 'Clear', exact: true }).click();
+    await expect(input).toBeFocused();
+    await expect(page.locator('.options-area')).toBeHidden();
+    expect((await input.boundingBox()).y).toBe(idle.y);
+  }
+});
+
+test('grammar hints do not shift word spellings within a row', async ({ page }) => {
+  await page.locator('#number').fill('343434');
+  await expect(choose(page, 'murmur', '3434').locator('.word-grammar')).toHaveText('noun, verb');
+  await expect(choose(page, 'miramar', '3434').locator('.word-grammar')).toHaveCount(0);
+  const words = await page.locator('.word-choice').evaluateAll((buttons) => buttons.map((button) => {
+    const box = button.getBoundingClientRect();
+    const spelling = button.querySelector('.word-spelling').getBoundingClientRect();
+    const grammar = button.querySelector('.word-grammar')?.getBoundingClientRect();
+    return { row: box.top, wordTop: spelling.top, inset: spelling.top - box.top,
+      wordBottom: spelling.bottom, grammarTop: grammar?.top };
+  }));
+  const rows = new Map();
+  for (const word of words) {
+    if (!rows.has(word.row)) rows.set(word.row, word.wordTop);
+    expect(word.wordTop).toBe(rows.get(word.row));
+    expect(word.inset).toBeLessThan(9);
+    if (word.grammarTop !== undefined) expect(word.grammarTop).toBeGreaterThanOrEqual(word.wordBottom);
+  }
+});
+
+test('choosing a word far down the list returns to the thread and next suggestions', async ({ page }) => {
+  await page.locator('#number').fill('343434');
+  const lastWord = page.locator('.word-choice').last();
+  await lastWord.scrollIntoViewIfNeeded();
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(500);
+  await lastWord.click();
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await expect(page.locator('#number')).toBeInViewport({ ratio: 1 });
+  await expect(page.locator('#memory-thread')).toBeInViewport({ ratio: 1 });
+  await expect(page.locator('.word-choice').first()).toBeInViewport({ ratio: 1 });
+  await expect(page.locator('.word-choice').first()).toBeFocused();
+});
+
 test('DigitLoom builds moon cake and restores each step with Undo word', async ({ page }) => {
   const input = page.getByLabel('Your number', { exact: true });
   await expect(page).toHaveTitle('DigitLoom - Give numbers a memorable shape');
   await input.fill('3277');
   await expect(page.locator('#step-title')).toHaveText('Choose a word for the next digits');
   await choose(page, 'moon', '32').click();
+  await expect(page.locator('#memory-thread')).toBeVisible();
   await expect(input).toHaveValue('32 77');
   await expect(page.locator('#progress-label')).toHaveText('2 of 4 digits encoded');
   await expect(page.locator('#sequence li')).toHaveText(['moon32']);
@@ -44,7 +107,8 @@ test('DigitLoom builds moon cake and restores each step with Undo word', async (
   await page.getByRole('button', { name: 'Undo word', exact: true }).click();
   await expect(input).toHaveValue('3277');
   await expect(page.locator('#sequence')).toBeEmpty();
-  await expect(page.getByRole('button', { name: 'Undo word', exact: true })).toBeDisabled();
+  await expect(page.locator('#memory-thread')).toBeHidden();
+  await expect(page.locator('#undo')).toBeDisabled();
 });
 
 test('typing, validation, Clear, and zero-prefixed numbers keep the UI coherent', async ({ page }) => {
@@ -55,7 +119,9 @@ test('typing, validation, Clear, and zero-prefixed numbers keep the UI coherent'
   await expect(input).toHaveAttribute('aria-invalid', 'true');
   await expect(page.locator('#input-error')).toHaveText('Use digits and spaces only.');
   await expect(page.locator('#sequence')).toBeEmpty();
+  await expect(page.locator('#memory-thread')).toBeHidden();
   await expect(page.locator('#options')).toBeEmpty();
+  await expect(page.locator('.options-area')).toBeVisible();
   await expect(page.locator('#step-title')).toHaveText('Check your number');
   await input.fill(' 009 20 ');
   await expect(input).toHaveValue('00920');
@@ -67,6 +133,7 @@ test('typing, validation, Clear, and zero-prefixed numbers keep the UI coherent'
   await expect(page.locator('#step-title')).toHaveText('Type digits to begin');
   await expect(page.locator('#progress-label')).toHaveText('No digits yet');
   await expect(page.locator('#options')).toBeEmpty();
+  await expect(page.locator('.options-area')).toBeHidden();
   await expect(page.getByRole('button', { name: 'Clear', exact: true })).toBeDisabled();
 });
 
@@ -144,11 +211,17 @@ test('alternate long pronunciations and the longest word fit a narrow screen', a
 test('the inline sound key works with keyboard and touch without covering the builder', async ({ page, isMobile }) => {
   const key = page.locator('#sound-key');
   const toggle = key.locator('summary');
+  const closedInput = await page.locator('#number').boundingBox();
   await toggle.focus();
   await page.keyboard.press('Enter');
   await expect(key).toHaveAttribute('open', '');
   await expect(key.locator('dl > div')).toHaveCount(10);
   await expect(key.locator('dd')).toHaveText(['ice', 'hat', 'knee', 'ham', 'ray', 'owl', 'shoe', 'key', 'ivy', 'bee']);
+  const panel = await key.locator('.sound-key-content').boundingBox();
+  const input = await page.locator('#number').boundingBox();
+  expect(input.y).toBe(closedInput.y);
+  expect(input.y + input.height).toBeLessThanOrEqual(panel.y);
+  await expect(page.locator('#number')).toBeInViewport({ ratio: 1 });
   if (isMobile) await toggle.tap();
   else await toggle.click();
   await expect(key).not.toHaveAttribute('open', '');
@@ -160,11 +233,18 @@ test('guide, source notices, and navigation work at root and subdirectory URLs',
   for (const root of ['/web/', 'http://127.0.0.1:4174/']) {
     await page.goto(root);
     await expect(page.locator('#number')).toBeEnabled();
+    await expect(page.getByRole('link', { name: 'GitHub', exact: true }))
+      .toHaveAttribute('href', 'https://github.com/certik/digitloom');
+    await expect(page.getByRole('link', { name: 'GitHub', exact: true })).toBeInViewport();
     await page.getByRole('link', { name: 'How it works', exact: true }).click();
     await expect(page).toHaveTitle('How it works - DigitLoom');
+    await expect(page.getByRole('link', { name: 'GitHub', exact: true }))
+      .toHaveAttribute('href', 'https://github.com/certik/digitloom');
     await expect(page.locator('.example')).toContainText('3277 becomes moon cake');
     await page.getByRole('link', { name: 'Data & licenses', exact: true }).click();
     await expect(page).toHaveTitle('Data & licenses - DigitLoom');
+    await expect(page.getByRole('link', { name: 'GitHub', exact: true }))
+      .toHaveAttribute('href', 'https://github.com/certik/digitloom');
     await expect(page.locator('main')).toContainText('Robyn Speer');
     await expect(page.locator('main')).toContainText('Carnegie Mellon');
     await expect(page.locator('main')).toContainText('Princeton University');
