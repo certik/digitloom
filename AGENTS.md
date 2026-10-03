@@ -7,9 +7,9 @@ pronunciation data and original interface design; keep the app fully static.
 
 | Path | Purpose |
 |---|---|
-| `README.md` | Product, serving/deployment, data provenance, mapping, compression, and test instructions. |
+| `README.md` | Product, serving/deployment, data provenance, mapping, PAO, compression, and test instructions. |
 | `LICENSE` | MIT license for project-authored code. |
-| `NOTICE` | Distinguishes code licensing from the dictionary's source and share-alike terms. |
+| `NOTICE` | Distinguishes code licensing from the dictionary's and starter PAO table's sources and share-alike terms. |
 | `.gitignore` | Excludes dependencies, source caches, bytecode, and generated test output. |
 | `.github/workflows/pages.yml` | CI tests and source-reproducibility check; deploys only `web/` from `main`. |
 | `package.json`, `package-lock.json` | DigitLoom commands and locked development dependencies. |
@@ -25,12 +25,17 @@ pronunciation data and original interface design; keep the app fully static.
 | `web/app.js` | Original UI controller; loads the dictionary and renders selections, validation, and length groups. |
 | `web/logic.js` | Generic input normalization, state transitions, lookup, validation, grouping, and plain-text POS labels. |
 | `web/dictionary.js` | Strict packed-format decoder and native gzip/JSON transport. |
+| `web/pao.html` | PAO encoder page: number input, scene cards, issues, final-digit ending, table actions, and the collapsible editor. |
+| `web/pao.js` | PAO UI controller: starter loading, scenes, warnings, lazy dictionary endings and peg ideas, editing, filters, and table import/export. |
+| `web/pao.css` | Styles used only by the PAO page. |
+| `web/pao-logic.js` | Pure PAO profile limits, validation, parsing, serialization, duplicate detection, and pair encoding. |
 | `web/styles.css` | DigitLoom's original responsive layout, typography, palette, and interaction styling. |
 | `web/icon.svg` | Original woven-line brand mark and favicon. |
-| `web/guide.html` | Instructions, sound families, and the moon-cake example. |
-| `web/sources.html` | Public source credit, licenses, and descriptions of data transformations. |
+| `web/guide.html` | Instructions, sound families, the moon-cake example, and PAO scenes. |
+| `web/sources.html` | Public source credit, licenses, descriptions of data transformations, and the starter PAO table's terms. |
 | `web/data/db.json` | Canonical, tracked format-4 dictionary: source metadata and `byCode` ranked word/POS lists. |
 | `web/data/db.txt.gz` | Equivalent tracked `digitloom-columns` version-1 payload with deterministic gzip headers. |
+| `web/data/pao-starter.json` | Original, editable CC BY-SA 4.0 starter PAO table with pegs from the dictionary vocabulary. |
 | `web/licenses/CMUdict.txt` | Upstream Carnegie Mellon dictionary notice. |
 | `web/licenses/WordNet.txt` | Upstream Princeton WordNet 3.0 notice. |
 | `web/licenses/wordfreq-NOTICE.txt` | Robyn Speer, source corpora, and SUBTLEX attribution. |
@@ -38,7 +43,9 @@ pronunciation data and original interface design; keep the app fully static.
 | `test/dictionary_test.py` | Python conversion, parsing, metadata, provenance, checksum, and packing tests. |
 | `test/logic.test.mjs` | Lookup/grouping, corpus counts, all code reachability, alternate codes, and invalid data. |
 | `test/packed-dictionary.test.mjs` | Exact JSON/packed equivalence, size budget, Unicode, leading zeros, and corruption handling. |
+| `test/pao-logic.test.mjs` | PAO profile limits, normalization, parsing, serialization, duplicates, encoding, and the starter table. |
 | `test/app.spec.mjs` | Browser tests for the real UI, keyboard/touch, root/subpath hosting, notices, and transport behavior. |
+| `test/pao.spec.mjs` | Browser tests for PAO scenes, endings, editing, warnings, import/export, failures, privacy, and hosting. |
 
 ## Data invariants
 
@@ -90,6 +97,35 @@ Code lengths belong in group headings, not per-word superscripts.
 Publish only `web/`, with its data and required license notices. Code is MIT;
 the combined dictionary remains CC BY-SA 4.0 with source conditions respected.
 Do not drop attribution as part of UI or packaging changes.
+
+## PAO invariants
+
+The PAO page reads decimal digits in pairs, repeating person, action, object;
+three pairs make a scene, and a final scene may have one or two slots. It has
+no 2-4-digit Auto split. Associations are personal: never infer roles from POS
+hints or pronunciation, never require associations to encode their pair, and
+never add them to the dictionary. A final single digit is a separate
+major-system ending chosen from the lazily loaded one-digit words. Preserve
+leading zeros; never pad, drop, or silently repair input. Editing the number
+clears the ending; Clear keeps the table.
+
+Missing associations and duplicates within a role (case-, space-, and
+NFC-insensitive) are explicit warnings that focus their table cells. Progress
+counts only resolved pairs and a chosen ending; never report a number as
+encoded while anything is unresolved. Encode long numbers completely and
+paginate their scenes. Green marks belong only to dictionary words (peg ideas
+and endings) under the canonical common-word prefix, never to associations.
+
+Profiles are `digitloom-pao` version 1 with 100 sorted `00`-`99` rows; imports
+may be partial. Keep tables in memory: no automatic storage, and no tables,
+numbers, or scenes in URLs, storage, or requests. Only explicit Import and
+Export read or write a file; exports use the static name `digitloom-pao.json`
+and contain only the table. Ask before replacing unexported changes, reject
+invalid imports without changing the current table, and render imported text
+as text. Each import, New blank table, Restore starter, or starter retry
+supersedes earlier pending ones; work from a superseded choice must not change
+the table or its feedback when it settles. Keep the starter's CC BY-SA 4.0
+license and attribution, and preserve those of imported tables.
 
 ## Commands
 

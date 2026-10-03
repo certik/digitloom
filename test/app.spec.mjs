@@ -396,18 +396,19 @@ test('all pages keep the same compact menu with current-page and external-site i
     await page.setViewportSize(viewport);
     let headerBounds;
     for (const [path, currentPage] of [
-      ['index.html', 'DigitLoom'], ['guide.html', 'How it works'], ['sources.html', 'Data & licenses']
+      ['index.html', 'DigitLoom'], ['pao.html', 'PAO'], ['guide.html', 'How it works'], ['sources.html', 'Data & licenses']
     ]) {
       await page.goto(`/web/${path}`);
       if (wideFont) await page.addStyleTag({ content: 'nav { font-family: Verdana, sans-serif; }' });
       const menu = page.getByRole('navigation', { name: 'Site', exact: true });
       const items = menu.locator(':scope > *');
-      await expect(items).toHaveText(['DigitLoom', 'How it works', 'Data & licenses', 'GitHub \u2197']);
+      await expect(items).toHaveText(['DigitLoom', 'PAO', 'How it works', 'Data & licenses', 'GitHub \u2197']);
       const current = menu.locator('[aria-current="page"]');
       await expect(current).toHaveCount(1);
       await expect(current).toHaveText(currentPage);
       await expect(current).not.toHaveAttribute('href');
       await expect(menu.getByRole('link', { name: currentPage, exact: true })).toHaveCount(0);
+      if (currentPage !== 'PAO') await expect(menu.getByRole('link', { name: 'PAO', exact: true })).toHaveAttribute('href', 'pao.html');
       expect(await current.evaluate((element) => element.tabIndex)).toBe(-1);
       expect(await current.evaluate((element) => Number(getComputedStyle(element).fontWeight))).toBeGreaterThanOrEqual(700);
       const github = menu.getByRole('link', { name: 'GitHub', exact: true });
@@ -465,6 +466,14 @@ test('guide, source notices, and navigation work at root and subdirectory URLs',
     await page.getByRole('navigation', { name: 'Site', exact: true })
       .getByRole('link', { name: 'Data & licenses', exact: true }).click();
     await expect(page).toHaveTitle('Data & licenses - DigitLoom');
+    await page.getByRole('link', { name: 'DigitLoom', exact: true }).click();
+    await expect(page.locator('#number')).toBeEnabled();
+    await page.getByRole('navigation', { name: 'Site', exact: true })
+      .getByRole('link', { name: 'PAO', exact: true }).click();
+    await expect(page).toHaveTitle('PAO scenes - DigitLoom');
+    await expect(page.getByRole('link', { name: 'GitHub', exact: true }))
+      .toHaveAttribute('href', 'https://github.com/certik/digitloom');
+    await expect(page.locator('#pao-number')).toBeEnabled();
     await page.getByRole('link', { name: 'DigitLoom', exact: true }).click();
     await expect(page.locator('#number')).toBeEnabled();
   }

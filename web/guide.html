@@ -11,6 +11,7 @@
   <header class="site-header">
     <nav aria-label="Site">
       <a class="brand" href="index.html"><img src="icon.svg" width="32" height="32" alt=""><span class="brand-name">DigitLoom</span></a>
+      <a class="nav-tool" href="pao.html">PAO</a>
       <strong aria-current="page">How it works</strong>
       <a href="sources.html">Data &amp; licenses</a>
       <a class="external-link" href="https://github.com/certik/digitloom" aria-describedby="github-link-hint">GitHub <span aria-hidden="true">&#8599;</span></a>
@@ -101,10 +102,71 @@
       same typography; the labels carry the grammatical information. An
       unlabeled word has no matching hint. These are possibilities from WordNet,
       not a grammar check or a promise that a particular phrase makes sense.</p>
+    <h2 id="pao">Scenes with person, action, object</h2>
+    <p>The <a href="pao.html">PAO page</a> uses a different technique for
+      numbers you want to recall quickly. The word builder looks up words whose
+      sounds match the digits, so you can encode any number without
+      preparation. PAO instead relies on a table you prepare and learn ahead of
+      time. It gives every pair from 00 to 99 three associations: a person, an
+      action, and an object. A number is then read two digits at a time. The
+      first pair supplies a person, the second an action, and the third an
+      object. Together they make one scene, and the next pair starts another.</p>
+    <div class="scene-example">
+      <p><strong>327753 becomes an astronaut who frosts a lime.</strong> In
+        DigitLoom's starter table, 32 has the person <em>astronaut</em>, 77 the
+        action <em>frosts</em>, and 53 the object <em>lime</em>.</p>
+      <p>Each code also has a peg, a major-system word for the pair: moon,
+        cake, and lime here. A peg helps you remember why an association
+        belongs to its code; scenes use the associations.</p>
+      <a href="pao.html">Try the starter table</a>
+    </div>
+    <p>Associations are personal and should stay fixed once learned. They do
+      not need to share the sounds of their pair. A table might give 88 the
+      person musician, 53 the action squeezes, and 66 the object defendant, so
+      885366 becomes a musician who squeezes a defendant. Rehearse your table
+      until each pair brings back all three associations at once; after that,
+      six digits fit in a single image.</p>
+    <p>Roles describe positions in the scene, not grammar. A person can be an
+      animal or a cartoon character, such as Wile E. Coyote for 08, and an
+      object can be a person. DigitLoom does not guess roles from the noun and
+      verb labels in its dictionary, and PAO associations never become part of
+      the word library.</p>
+    <h3>How the PAO page reads a number</h3>
+    <p>Type digits and the scenes appear at once. Each scene card lists its
+      person, action, and object with their exact pairs. Leading zeros are
+      kept, spaces are ignored, and nothing is padded. If the number ends
+      partway through a scene, the last scene has just a person, or a person
+      and an action. One leftover digit has no pair, so DigitLoom offers
+      ordinary one-digit words for it, as the word builder does. This ending
+      is separate from your scenes; you can choose it, undo it, or edit the
+      number to start again.</p>
+    <p>Blank associations are listed as missing. A value used for two codes in
+      the same role is flagged as ambiguous, because the scene could then
+      decode two ways. Each warning leads to the table cell that needs
+      attention. Progress counts only resolved pairs and a chosen ending, so a
+      number is not called encoded until every part is settled. Long numbers
+      are encoded in full and shown fifty scenes at a time.</p>
+    <h3>Make the table your own</h3>
+    <p>Choose <strong>Edit table</strong> to rename the table or change any
+      peg, person, action, or object. <strong>Find</strong> and
+      <strong>Show</strong> narrow the hundred codes to a word, the pairs in
+      your number, missing associations, or duplicates. <strong>Ideas</strong>
+      beside a peg opens the dictionary and lists the words whose sounds encode
+      exactly that pair, with green backgrounds for common words. A change
+      applies to every number you encode with the table.</p>
+    <p>Your table lives only in the open tab. DigitLoom does not save it in
+      your browser or send it anywhere, so use <strong>Export table</strong> to
+      download <code>digitloom-pao.json</code> and <strong>Import table</strong>
+      to continue later. The file holds the table with its license and
+      attribution, never the numbers you encoded. <strong>New blank
+      table</strong> starts from scratch and <strong>Restore starter</strong>
+      brings back DigitLoom's example. Before replacing changes you have not
+      exported, DigitLoom asks first.</p>
     <h2>Local by design</h2>
     <p>DigitLoom downloads its dictionary once and does the matching in your
       browser. Your numbers and selected words are not sent to a service or
-      saved in an account. The dictionary includes all usable pronunciations
+      saved in an account. PAO tables stay in the open tab unless you export
+      them. The dictionary includes all usable pronunciations
       in our pinned CMUdict source, not every English word.</p>
     <p><a href="sources.html">Read about the data, build process, and licenses.</a></p>
   </main>

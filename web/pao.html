@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="DigitLoom turns digit pairs into person, action, and object scenes with an editable PAO table that stays in your browser.">
+  <meta name="theme-color" content="#f7f5f0">
+  <title>PAO scenes - DigitLoom</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="pao.css">
+</head>
+<body>
+  <a class="skip-link" href="#pao-workspace">Skip to the PAO encoder</a>
+  <header class="site-header">
+    <nav aria-label="Site">
+      <a class="brand" href="index.html"><img src="icon.svg" width="32" height="32" alt=""><span class="brand-name">DigitLoom</span></a>
+      <strong class="nav-tool" aria-current="page">PAO</strong>
+      <a href="guide.html">How it works</a>
+      <a href="sources.html">Data &amp; licenses</a>
+      <a class="external-link" href="https://github.com/certik/digitloom" aria-describedby="github-link-hint">GitHub <span aria-hidden="true">&#8599;</span></a>
+    </nav>
+    <span id="github-link-hint" class="visually-hidden">External site</span>
+  </header>
+  <main class="page pao-page" id="pao-workspace">
+    <h1 class="visually-hidden">Turn number pairs into person, action, object scenes</h1>
+    <section class="composer pao-composer" aria-label="PAO encoder">
+      <div class="composer-heading pao-composer-heading">
+        <label for="pao-number">Your number</label>
+        <button id="open-editor" class="text-button" type="button" aria-controls="table-editor" disabled>Edit table</button>
+      </div>
+      <div class="input-row">
+        <input id="pao-number" type="text" inputmode="numeric" autocomplete="off" spellcheck="false"
+          placeholder="Try 327753" aria-describedby="pao-number-hint pao-input-error" disabled>
+        <button id="pao-clear" class="button secondary" type="button" disabled>Clear</button>
+      </div>
+      <p class="pao-hint" id="pao-number-hint">Each pair of digits becomes a person, an action, then an object. Three pairs make one scene. Spaces are ignored and leading zeros count.</p>
+      <p class="pao-table-line"><span id="table-in-use"></span> <a href="guide.html#pao">How PAO works</a></p>
+      <p id="pao-input-error" class="error" role="alert" hidden></p>
+      <p id="table-load-status" class="pao-status" role="status">Opening the starter table...</p>
+      <div id="table-load-error" class="error pao-load-error" role="alert" hidden>
+        <p id="table-load-error-text"></p>
+        <button id="retry-starter" class="button secondary" type="button">Try again</button>
+      </div>
+      <noscript><p class="error">DigitLoom needs JavaScript to read your PAO table in your browser.</p></noscript>
+    </section>
+
+    <section class="pao-output" id="pao-output" aria-labelledby="pao-step-title" hidden>
+      <h2 id="pao-step-title" aria-live="polite">Type digits to begin</h2>
+      <p id="pao-empty" class="empty-options" hidden></p>
+      <div id="pao-progress" class="progress-row" hidden>
+        <progress id="pao-progress-bar" max="1" value="0" aria-label="Digits encoded"></progress>
+        <span id="pao-progress-label">No digits yet</span>
+      </div>
+      <div id="pao-issues" class="pao-issues" hidden>
+        <h3 id="pao-issues-title">Needs attention</h3>
+        <ul id="pao-issue-list" aria-labelledby="pao-issues-title"></ul>
+        <button id="pao-issues-more" class="text-button" type="button" hidden></button>
+      </div>
+      <p id="scene-count" class="scene-count" hidden></p>
+      <ol id="pao-scenes" class="pao-scenes" aria-label="Scenes"></ol>
+      <button id="more-scenes" class="button secondary more-scenes" type="button" hidden></button>
+      <section id="pao-tail" class="pao-tail" aria-labelledby="tail-title" hidden>
+        <h3 id="tail-title">Final digit</h3>
+        <p class="tail-note">PAO works in pairs, so one leftover digit gets an ordinary major-system word. It is a separate ending, not part of a scene.</p>
+        <div id="tail-chosen" class="tail-chosen" hidden>
+          <p class="tail-result"><span class="tail-label">Ending</span> <span id="tail-word" class="tail-word"></span> <span id="tail-code" class="tail-code"></span></p>
+          <button id="undo-tail" class="button secondary" type="button">Undo ending</button>
+        </div>
+        <p id="tail-status" class="pao-status" role="status"></p>
+        <div id="tail-error" class="error pao-load-error" role="alert" hidden>
+          <p id="tail-error-text"></p>
+          <button id="tail-retry" class="button secondary" type="button">Try again</button>
+        </div>
+        <div id="tail-options"></div>
+      </section>
+    </section>
+
+    <section class="pao-table" id="pao-table" aria-labelledby="table-title">
+      <div class="pao-table-heading">
+        <h2 id="table-title">Your PAO table</h2>
+        <p id="table-summary" class="table-summary">No table open yet.</p>
+      </div>
+      <p class="table-privacy">This table lives only in this browser tab. DigitLoom does not save it or send it anywhere, so export it to keep your changes and import the file to continue later. Exports contain the table, never your numbers.</p>
+      <div class="table-actions">
+        <button id="new-table" class="button secondary" type="button">New blank table</button>
+        <button id="restore-starter" class="button secondary" type="button" disabled>Restore starter</button>
+        <button id="import-table" class="button secondary" type="button">Import table</button>
+        <button id="export-table" class="button secondary" type="button" disabled>Export table</button>
+        <input id="import-file" type="file" accept=".json,application/json" hidden>
+      </div>
+      <p id="table-message" class="table-message" role="status"></p>
+      <p id="table-error" class="error" role="alert" hidden></p>
+      <details id="table-editor" class="table-editor" hidden>
+        <summary>Edit codes 00&ndash;99</summary>
+        <div class="editor-body">
+          <div class="editor-meta">
+            <div class="name-field">
+              <label for="table-name">Table name</label>
+              <input id="table-name" type="text" autocomplete="off" spellcheck="false" required
+                aria-describedby="table-name-error">
+              <p id="table-name-error" class="field-error" hidden>Give the table a name before exporting it.</p>
+            </div>
+            <dl class="table-provenance">
+              <div><dt>License</dt><dd id="table-license"></dd></div>
+              <div><dt>Attribution</dt><dd id="table-attribution"></dd></div>
+            </dl>
+          </div>
+          <p class="editor-note">Each association belongs to its code, so a change here applies to every number you encode with this table. Associations are personal: they do not need to share the peg's sounds, people can be animals or characters, and objects can be people.</p>
+          <div class="editor-filters">
+            <div class="filter-field">
+              <label for="table-search">Find</label>
+              <input id="table-search" type="search" autocomplete="off" spellcheck="false" maxlength="200" placeholder="Code or word">
+            </div>
+            <div class="filter-field">
+              <label for="table-filter">Show</label>
+              <select id="table-filter">
+                <option value="all">All codes</option>
+                <option value="number">Codes in your number</option>
+                <option value="missing">Missing associations</option>
+                <option value="duplicates">Duplicates</option>
+              </select>
+            </div>
+            <p id="filter-count" class="filter-count" role="status"></p>
+          </div>
+          <div id="duplicate-summary" class="duplicate-summary" hidden>
+            <h3 id="duplicate-title">Duplicate associations</h3>
+            <p>A value used for two codes in the same role makes those pairs ambiguous. Change one of them so each scene decodes one way.</p>
+            <ul id="duplicate-list" aria-labelledby="duplicate-title"></ul>
+          </div>
+          <div class="pao-rows-header" aria-hidden="true">
+            <span>Code</span><span>Peg</span><span>Person</span><span>Action</span><span>Object</span>
+          </div>
+          <div id="pao-rows" class="pao-rows"></div>
+          <p id="no-rows" class="empty-options" hidden>No codes match. Clear the search or show all codes.</p>
+        </div>
+      </details>
+    </section>
+  </main>
+  <dialog id="replace-dialog" class="pao-dialog" aria-labelledby="replace-title" aria-describedby="replace-text">
+    <form method="dialog">
+      <h2 id="replace-title">Replace this table?</h2>
+      <p id="replace-text"></p>
+      <div class="dialog-actions">
+        <button id="confirm-replace" class="button" value="replace">Replace table</button>
+        <button id="cancel-replace" class="button secondary" value="cancel" autofocus>Keep current table</button>
+      </div>
+    </form>
+  </dialog>
+  <footer class="site-footer"><p>DigitLoom. Your PAO table stays in this tab; export it to keep a copy.</p></footer>
+  <script type="module" src="pao.js"></script>
+</body>
+</html>
