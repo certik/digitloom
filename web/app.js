@@ -1,8 +1,14 @@
-import { loadDictionary } from './dictionary.js';
-import { chooseCandidate, formatNumber, getCandidates, groupCandidates, normalizeInput, partOfSpeechLabel, planChunks } from './logic.js';
+import { loadDictionary } from './dictionary.js?v=5';
+import { DEFAULT_MINIMUM_ZIPF, chooseCandidate, formatNumber, getCandidates, groupCandidates, isCommonWord, normalizeInput, partOfSpeechLabel, planChunks } from './logic.js?v=5';
 
 const number = document.querySelector('#number');
 const autoSplit = document.querySelector('#auto-split');
+const wordFilter = document.querySelector('#word-filter');
+const commonOnly = document.querySelector('#common-only');
+const frequencyCutoff = document.querySelector('#frequency-cutoff');
+const frequencyValue = document.querySelector('#frequency-value');
+const resetCutoff = document.querySelector('#reset-cutoff');
+const showAllWords = document.querySelector('#show-all-words');
 const clear = document.querySelector('#clear');
 const undo = document.querySelector('#undo');
 const sequence = document.querySelector('#sequence');
@@ -27,11 +33,13 @@ function choose(entry) {
   thread = chooseCandidate(thread, entry);
   refresh();
   window.scrollTo(0, 0);
-  (options.querySelector('button') ?? undo).focus({ preventScroll: true });
+  const next = options.querySelector('button') ?? undo;
+  next.focus({ preventScroll: true });
+  if (next.getBoundingClientRect().bottom > window.innerHeight) next.scrollIntoView({ block: 'nearest' });
 }
 
-function wordButton(entry, index) {
-  const [word, code, flags] = entry;
+function wordButton(entry, index, minimumZipf = DEFAULT_MINIMUM_ZIPF) {
+  const [word, code, flags, frequency] = entry;
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'word-choice';
@@ -52,7 +60,7 @@ function wordButton(entry, index) {
     button.append(grammar);
     descriptions.push(grammar.id);
   }
-  if (index < (dictionary.source.commonWords.countsByCode[code] ?? 0)) {
+  if (isCommonWord(frequency, minimumZipf)) {
     button.classList.add('recommended');
     const recommendation = document.createElement('span');
     recommendation.className = 'word-recommendation';
@@ -67,7 +75,7 @@ function wordButton(entry, index) {
   return button;
 }
 
-function showGroups(candidates) {
+function showGroups(candidates, minimumZipf) {
   const fragment = document.createDocumentFragment();
   for (const { digitCount, words } of groupCandidates(candidates)) {
     const section = document.createElement('section');
@@ -79,11 +87,14 @@ function showGroups(candidates) {
     title.textContent = `${digitCount}-digit words`;
     section.setAttribute('aria-labelledby', title.id);
     const detail = document.createElement('p');
-    detail.textContent = `${thread.remaining.slice(0, digitCount)} / ${words.length} choices`;
+    const code = thread.remaining.slice(0, digitCount);
+    detail.textContent = commonOnly.checked
+      ? `${code} / ${words.length} common of ${dictionary.byCode[code].length} choices`
+      : `${code} / ${words.length} choices`;
     header.append(title, detail);
     const choices = document.createElement('div');
     choices.className = 'choices';
-    for (const [index, word] of words.entries()) choices.append(wordButton(word, index));
+    for (const [index, word] of words.entries()) choices.append(wordButton(word, index, minimumZipf));
     section.append(header, choices);
     fragment.append(section);
   }
@@ -108,8 +119,20 @@ function updateNumber(value) {
 }
 
 function refresh() {
-  const chunks = autoSplit.checked && dictionary && !error ? planChunks(dictionary, thread.remaining) : null;
+  const minimumZipf = frequencyCutoff.valueAsNumber;
+  const cutoffLabel = `Zipf ${minimumZipf.toFixed(1)}`;
+  frequencyValue.textContent = cutoffLabel;
+  frequencyCutoff.setAttribute('aria-valuetext', cutoffLabel);
+  resetCutoff.disabled = !dictionary || minimumZipf === DEFAULT_MINIMUM_ZIPF;
+  wordFilter.classList.toggle('is-active', commonOnly.checked || minimumZipf !== DEFAULT_MINIMUM_ZIPF);
+  wordFilter.querySelector('summary').title = commonOnly.checked
+    ? `Common words only, at ${cutoffLabel} or above`
+    : `All words, with green highlights at ${cutoffLabel} or above`;
+  const chunks = autoSplit.checked && dictionary && !error
+    ? planChunks(dictionary, thread.remaining, commonOnly.checked ? minimumZipf : undefined)
+    : null;
   const noSplit = autoSplit.checked && !error && thread.remaining.length > 0 && chunks === null;
+  const noCommonSplit = noSplit && commonOnly.checked && planChunks(dictionary, thread.remaining) !== null;
   if (!error) updateNumber(formatNumber(thread.selected, chunks?.join(' ') ?? thread.remaining));
   inputError.hidden = !error;
   inputError.textContent = error;
@@ -135,9 +158,13 @@ function refresh() {
   const candidates = dictionary && !error
     ? getCandidates(dictionary, nextDigits).filter(([, code]) => !autoSplit.checked || code === nextDigits)
     : [];
-  showGroups(candidates);
-  heading.classList.toggle('visually-hidden', candidates.length > 0);
-  emptyOptions.hidden = candidates.length > 0 || (total > 0 && !thread.remaining && !error);
+  const visible = commonOnly.checked
+    ? candidates.filter(([, , , frequency]) => isCommonWord(frequency, minimumZipf))
+    : candidates;
+  showGroups(visible, minimumZipf);
+  heading.classList.toggle('visually-hidden', visible.length > 0);
+  emptyOptions.hidden = visible.length > 0 || (total > 0 && !thread.remaining && !error);
+  showAllWords.hidden = !commonOnly.checked || !(noCommonSplit || (candidates.length > 0 && !visible.length));
   if (error) {
     heading.textContent = 'Check your number';
     emptyOptions.textContent = 'Replace letters or punctuation with digits to explore the word library.';
@@ -146,12 +173,18 @@ function refresh() {
     emptyOptions.textContent = 'Try 3277: a moon, a cake, a scene to remember.';
   } else if (!thread.remaining) {
     heading.textContent = 'Your number is encoded.';
+  } else if (noCommonSplit) {
+    heading.textContent = 'No automatic split at this cutoff';
+    emptyOptions.textContent = 'No complete split uses only words at this cutoff. Lower the frequency cutoff in Filter or show all words. Your selected words are kept.';
   } else if (noSplit) {
     heading.textContent = 'No automatic split available';
     emptyOptions.textContent = 'This number cannot be fully split into available 2-4-digit words, with an optional final digit. Turn off Auto split to see all word lengths.';
   } else if (!candidates.length) {
     heading.textContent = 'No words for this prefix';
     emptyOptions.textContent = 'This dictionary has no matching word. Undo a choice or try a different number.';
+  } else if (!visible.length) {
+    heading.textContent = 'No words at this cutoff';
+    emptyOptions.textContent = 'Lower the frequency cutoff in Filter or show all words. Your selected words are kept.';
   } else {
     heading.textContent = autoSplit.checked ? 'Choose a word for the next automatic chunk'
       : thread.selected.length ? 'Add to your memory thread' : 'Choose a word for the next digits';
@@ -179,6 +212,20 @@ number.addEventListener('beforeinput', (event) => {
 });
 
 autoSplit.addEventListener('change', refresh);
+commonOnly.addEventListener('change', refresh);
+frequencyCutoff.addEventListener('input', refresh);
+
+resetCutoff.addEventListener('click', () => {
+  frequencyCutoff.value = String(DEFAULT_MINIMUM_ZIPF);
+  refresh();
+  frequencyCutoff.focus();
+});
+
+showAllWords.addEventListener('click', () => {
+  commonOnly.checked = false;
+  refresh();
+  options.querySelector('button')?.focus();
+});
 
 undo.addEventListener('click', () => {
   const last = thread.selected.at(-1);
@@ -208,6 +255,8 @@ async function openLibrary() {
   }
   number.disabled = false;
   autoSplit.disabled = false;
+  commonOnly.disabled = false;
+  frequencyCutoff.disabled = false;
   libraryStatus.textContent = `${dictionary.source.pairCount.toLocaleString('en-US')} word encodings, ready in your browser.`;
   libraryStatus.classList.add('visually-hidden');
   refresh();

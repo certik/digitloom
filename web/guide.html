@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>How it works - DigitLoom</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
   <header class="site-header">
@@ -63,8 +63,8 @@
     <p>Suggestions cover the beginning of
       the unencoded part, grouped by code length. The longest groups come first;
       the more common words lead each group. Words with a wordfreq Zipf score
-      of at least 3.5 have a green background. This is roughly three occurrences
-      per million words. There is no fixed number of highlights: a group can
+      of at least 3.5 have a green background by default. This is roughly three
+      occurrences per million words. There is no fixed number of highlights: a group can
       have many, one, or none. Lower-frequency and unranked words remain
       available. Frequency is a guide, not a guarantee of personal familiarity
       or vivid imagery.
@@ -72,7 +72,7 @@
       many digits its words cover. Each button's description gives the exact
       code.</p>
     <p>Choose a word and the remaining digits get their own suggestions.
-      The builder returns to the top so the next choices are in view.
+      The builder brings the next choices into view.
       <strong>Undo word</strong> takes back one choice. <strong>Clear</strong>
       starts a new thread. Editing the number also starts over. Spaces are
       ignored during input; leading zeros remain part of the number.</p>
@@ -80,6 +80,20 @@
       digit remains, one-digit words are offered. There is no five-digit limit:
       long words can cover longer stretches, and a sequence can encode a number
       of any length.</p>
+    <h2>Show just the common words</h2>
+    <p>Open <strong>Filter</strong> beside the input and check
+      <strong>Common words only</strong> to hide the white alternatives and
+      any empty length groups. Word order does not change, and every word
+      meeting the cutoff remains available without a fixed quota.</p>
+    <p>Use <strong>Frequency cutoff</strong> to adjust the Zipf threshold
+      from 1.0 to 8.0 in 0.1 steps. Lower it for more green choices, or raise it
+      for fewer. <strong>Reset 3.5</strong> returns to the default. Words with
+      no frequency data stay unhighlighted and are hidden in common-only mode.</p>
+    <p>Changing these controls keeps the words you have already selected.
+      If no choices meet the cutoff, lower it or choose <strong>Show all
+      words</strong>. <strong>Clear</strong> keeps your filter settings for
+      the next number. These settings are not saved in browser storage or
+      added to the page address.</p>
     <h2>Split a long number automatically</h2>
     <p>Turn on <strong>Auto split</strong> beside the input label to suggest
       mixed two-, three-, and four-digit word chunks. The builder adds spaces
@@ -90,6 +104,11 @@
       The split prefers longer available chunks, but checks the rest of the
       number too. A one-digit ending is used only when no complete split
       avoids it. This chooses boundaries, not the most memorable phrase.</p>
+    <p>With <strong>Common words only</strong> enabled, Auto split looks for
+      a complete split using words at your chosen cutoff. For example, at
+      3.5 it splits <code>3277</code> into <code>32 77</code> rather than
+      choosing a rare four-digit word. If no complete common-word split
+      exists, lower the cutoff or show all words.</p>
     <p>Switch Auto split off to explore all word lengths again. Switching modes
       keeps your selected words and changes only the remaining digits.
       <strong>Undo word</strong> restores the previous digits and replans them;

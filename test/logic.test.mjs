@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, stat } from 'node:fs/promises';
-import { chooseCandidate, formatNumber, getCandidates, groupCandidates, normalizeInput, partOfSpeechLabel, planChunks, validateDatabase } from '../web/logic.js';
+import { DEFAULT_MINIMUM_ZIPF, DICTIONARY_VERSION, chooseCandidate, formatNumber, getCandidates, groupCandidates, isCommonWord, normalizeInput, partOfSpeechLabel, planChunks, validateDatabase } from '../web/logic.js';
 
 const db = JSON.parse(await readFile(new URL('../web/data/db.json', import.meta.url)));
 
@@ -22,7 +22,25 @@ test('ranks common words first and includes WordNet metadata', () => {
     ['then', '12', 'na']
   ]);
   assert.equal(candidates.some((entry) => entry[1] === '1234'), true);
-  assert.deepEqual(candidates.find(([word]) => word === 'down'), ['down', '12', 'nva']);
+  assert.deepEqual(candidates.find(([word]) => word === 'down'), ['down', '12', 'nva', 588]);
+});
+
+test('frequency cutoffs are inclusive, adjustable, and never classify unranked words as common', () => {
+  assert.equal(DEFAULT_MINIMUM_ZIPF, 3.5);
+  for (const [frequency, cutoff, expected] of [
+    [349, 3.5, false], [350, 3.5, true], [351, 3.5, true],
+    [399, 4, false], [400, 4, true], [470, 4.7, true], [470, 4.71, false],
+    [0, 0, false], [0, 3.5, false], [100, 1, true], [773, 8, false], [900, 9, true]
+  ]) {
+    assert.equal(isCommonWord(frequency, cutoff), expected, `${frequency} at ${cutoff}`);
+  }
+  assert.equal(isCommonWord(350), true);
+  for (const frequency of [undefined, null, false, '350', -1, 0.5, 901, NaN, Infinity]) {
+    assert.throws(() => isCommonWord(frequency), RangeError);
+  }
+  for (const cutoff of [null, false, '3.5', -0.1, 9.1, NaN, Infinity]) {
+    assert.throws(() => isCommonWord(350, cutoff), RangeError);
+  }
 });
 
 test('grammar labels describe all POS combinations without presentation classes', () => {
@@ -38,12 +56,12 @@ test('grammar labels describe all POS combinations without presentation classes'
 
 test('groups by encoded digit count, longest first, keeping source order and metadata', () => {
   const candidates = Object.freeze([
-    Object.freeze(['long-spelling', '00', 'n']),
-    Object.freeze(['short', '00123', 'v']),
-    Object.freeze(['longest-spelling', '0', '']),
-    Object.freeze(['first', '001', 'na']),
-    Object.freeze(['a', '00', 'nv']),
-    Object.freeze(['second', '001', 'nva'])
+    Object.freeze(['long-spelling', '00', 'n', 600]),
+    Object.freeze(['short', '00123', 'v', 400]),
+    Object.freeze(['longest-spelling', '0', '', 0]),
+    Object.freeze(['first', '001', 'na', 500]),
+    Object.freeze(['a', '00', 'nv', 350]),
+    Object.freeze(['second', '001', 'nva', 499])
   ]);
   const groups = groupCandidates(candidates);
   assert.deepEqual(groups.map(({ digitCount }) => digitCount), [5, 3, 2, 1]);
@@ -115,6 +133,24 @@ test('automatic chunks use real dictionary codes and handle long input without r
   assert.equal(formatNumber(state.selected, state.remaining), '9521 471 32');
 });
 
+test('common-only chunk plans use the current cutoff and preserve full remaining encodability', () => {
+  assert.deepEqual(planChunks(db, '3277'), ['3277']);
+  assert.deepEqual(planChunks(db, '3277', 3.5), ['32', '77']);
+  assert.deepEqual(planChunks(db, '3277', 1.5), ['3277']);
+  assert.equal(planChunks(db, '3277', 5), null);
+  const filtered = {
+    byCode: { '12': [['common', '', 350], ['rare', 'n', 349]], '3': [['unranked', '', 0]] }
+  };
+  assert.deepEqual(planChunks(filtered, '123'), ['12', '3']);
+  assert.deepEqual(planChunks(filtered, '12', 3.5), ['12']);
+  assert.equal(planChunks(filtered, '12', 3.6), null);
+  assert.equal(planChunks(filtered, '123', 3.5), null);
+  for (const cutoff of [null, '3.5', NaN, -1, 10]) {
+    assert.throws(() => planChunks(filtered, '', cutoff), RangeError);
+    assert.throws(() => planChunks(filtered, '12', cutoff), RangeError);
+  }
+});
+
 test('long and zero-prefixed remainders use available prefix queries', () => {
   assert.ok(getCandidates(db, '000000000000').length > 0);
   assert.ok(getCandidates(db, '12345678901234567890').length > 0);
@@ -129,7 +165,7 @@ test('long and zero-prefixed remainders use available prefix queries', () => {
 });
 
 test('generated independent dictionary has full pinned-source counts and provenance', async () => {
-  assert.equal(db.version, 4);
+  assert.equal(db.version, DICTIONARY_VERSION);
   assert.equal(db.source.pronunciationCount, 135166);
   assert.equal(db.source.dictionaryWordCount, 126052);
   assert.equal(db.source.wordCount, 125854);
@@ -145,27 +181,30 @@ test('generated independent dictionary has full pinned-source counts and provena
   assert.ok((await stat(new URL('../web/data/db.json', import.meta.url))).size < 3_000_000);
 });
 
-test('common-word metadata records every qualifying word without a fixed quota', () => {
-  const { minimumZipf, countsByCode } = db.source.commonWords;
-  assert.equal(minimumZipf, 3.5);
+test('word frequencies preserve the default highlights and support other cutoffs without quotas', () => {
+  const commonByCode = Object.fromEntries(Object.entries(db.byCode)
+    .map(([code, entries]) => [code, entries.filter(([, , frequency]) => isCommonWord(frequency))])
+    .filter(([, entries]) => entries.length));
   for (const [code, count] of [['12', 69], ['32', 29], ['77', 14], ['08', 9], ['626', 1], ['3277', 0]]) {
-    assert.equal(countsByCode[code] ?? 0, count, code);
+    assert.equal(commonByCode[code]?.length ?? 0, count, code);
   }
-  assert.equal(Object.keys(countsByCode).length, 6352);
-  assert.equal(Object.values(countsByCode).reduce((sum, count) => sum + count, 0), 14934);
-  const commonWords = new Set(Object.entries(countsByCode)
-    .flatMap(([code, count]) => db.byCode[code].slice(0, count).map(([word]) => word)));
+  assert.equal(Object.keys(commonByCode).length, 6352);
+  assert.equal(Object.values(commonByCode).reduce((sum, entries) => sum + entries.length, 0), 14934);
+  const commonWords = new Set(Object.values(commonByCode).flat().map(([word]) => word));
   assert.equal(commonWords.size, 14616);
   for (const word of ['moon', 'cake', 'sofa', 'mango', 'cocoa']) assert.ok(commonWords.has(word), word);
   assert.ok(!commonWords.has('murmur'));
   assert.ok(!commonWords.has('menchaca'));
+  for (const [cutoff, count] of [[1, 373], [2, 258], [3.5, 69], [4, 45], [5, 11], [6, 3], [8, 0]]) {
+    assert.equal(db.byCode['12'].filter(([, , frequency]) => isCommonWord(frequency, cutoff)).length, count);
+  }
 });
 
 test('every exact-code word is reachable, with no duplicates or unrelated suggestions', () => {
   for (const [code, entries] of Object.entries(db.byCode)) {
     const candidates = getCandidates(db, code);
     assert.deepEqual(candidates.filter((candidate) => candidate[1] === code),
-      entries.map(([word, flags]) => [word, code, flags]), code);
+      entries.map(([word, flags, frequency]) => [word, code, flags, frequency]), code);
     assert.ok(candidates.every((candidate) => code.startsWith(candidate[1])));
   }
 });
@@ -174,7 +213,8 @@ test('long codes and alternate pronunciations are available without spelling gue
   const codes = ['242625062', '2142625062'];
   for (const code of codes) {
     const word = getCandidates(db, code).find(([word, digits]) => word === 'internationalization' && digits === code);
-    assert.deepEqual(word, ['internationalization', code, 'n']);
+    assert.deepEqual(word.slice(0, 3), ['internationalization', code, 'n']);
+    assert.equal(word[3], db.byCode[code].find(([spelling]) => spelling === 'internationalization')[2]);
     assert.equal(chooseCandidate({ selected: [], remaining: code }, word).remaining, '');
     const groups = groupCandidates(getCandidates(db, code));
     assert.equal(groups[0].digitCount, code.length);
@@ -189,27 +229,31 @@ test('long codes and alternate pronunciations are available without spelling gue
 });
 
 test('invalid database shapes fail explicitly instead of enabling a broken app', () => {
-  for (const invalid of [null, {}, { ...db, version: 1 }, { ...db, version: 3 },
-    { ...db, byCode: { '0': [['word', 'invalid']] } },
-    { ...db, byCode: { '0': [['word', 'n'], ['word', 'v']] } },
-    { ...db, byCode: { '0': [['word', 0]] } },
+  for (const invalid of [null, {}, { ...db, version: 1 }, { ...db, version: 4 },
+    { ...db, byCode: { '0': [['word', 'invalid', 0]] } },
+    { ...db, byCode: { '0': [['word', 'n', 350], ['word', 'v', 0]] } },
+    { ...db, byCode: { '0': [['word', 0, 0]] } },
     { ...db, byCode: { '0': [] } },
-    { ...db, byCode: { '': [['word', 'n']] } },
+    { ...db, byCode: { '': [['word', 'n', 350]] } },
     { ...db, source: { ...db.source, maxCodeLength: 5 } }]) {
     assert.throws(() => validateDatabase(invalid), /Invalid local word database/);
   }
 });
 
-test('missing or corrupt common-word metadata fails instead of guessing highlights', () => {
-  const commonWords = db.source.commonWords;
-  for (const invalid of [
-    undefined, null, {}, { ...commonWords, minimumZipf: 4 },
-    ...[undefined, null, [], { unknown: 1 }].map((countsByCode) => ({ ...commonWords, countsByCode })),
-    ...[0, -1, 0.5, '1', true, db.byCode['00'].length + 1, Number.MAX_SAFE_INTEGER + 1].map((count) => ({
-      ...commonWords, countsByCode: { ...commonWords.countsByCode, '00': count }
-    }))
-  ]) {
-    assert.throws(() => validateDatabase({ ...db, source: { ...db.source, commonWords: invalid } }),
+test('missing, corrupt, or out-of-order frequencies fail instead of guessing highlights', () => {
+  const fixture = {
+    version: DICTIONARY_VERSION, source: { maxCodeLength: 2, pairCount: 1, codeCount: 1 },
+    byCode: { '00': [['word', 'n', 350]] }
+  };
+  assert.equal(validateDatabase(fixture), fixture);
+  for (const frequency of [undefined, null, -1, 0.5, '350', true, 901, NaN, Infinity]) {
+    assert.throws(() => validateDatabase({ ...fixture, byCode: { '00': [['word', 'n', frequency]] } }),
       /Invalid local word database/);
   }
+  assert.throws(() => validateDatabase({ ...fixture, byCode: { '00': [['word', 'n']] } }),
+    /Invalid local word database/);
+  assert.throws(() => validateDatabase({
+    ...fixture, source: { ...fixture.source, pairCount: 2 },
+    byCode: { '00': [['first', '', 350], ['second', '', 351]] }
+  }), /Invalid local word database/);
 });

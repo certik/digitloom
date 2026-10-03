@@ -65,62 +65,71 @@ class DictionaryTests(unittest.TestCase):
         lemmas = {"n": {"common"}, "v": set(), "a": set()}
         exceptions = {"n": {}, "v": {}, "a": {}}
         db = build_database(words, 8, {"common": 100, "a": 200, "z": 200}, lemmas, exceptions, {})
-        self.assertEqual(db["byCode"]["0"], [["common", "n"], ["a", ""], ["z", ""], ["variant", ""]])
+        self.assertEqual(db["byCode"]["0"], [
+            ["common", "n", 800], ["a", "", 700], ["z", "", 700], ["variant", "", 0],
+        ])
         self.assertEqual(db["source"]["maxCodeLength"], 17)
         self.assertEqual(db["source"]["pairCount"], 6)
         self.assertEqual(db["source"]["zeroDigitWords"], ["silent"])
         self.assertNotIn("", db["byCode"])
 
-    def test_common_counts_use_the_inclusive_zipf_threshold_not_pos_or_list_length(self):
+    def test_frequency_scores_preserve_exact_bins_and_distinguish_unranked_words(self):
         words = {
             "frequent": {"0"}, "above": {"0", "00"}, "at": {"0", "00"},
             "below": {"0", "00"}, "missing": {"0", "00"},
-            "only-common": {"12"}, "only-rare": {"123"}, "silent": {""},
+            "only-common": {"12"}, "only-rare": {"123"}, "maximum": {"99"}, "silent": {""},
         }
         ranks = {"frequent": 300, "above": 549, "at": 550, "below": 551,
-                 "only-common": 550, "only-rare": 551, "silent": 100}
+                 "only-common": 550, "only-rare": 551, "maximum": 0, "silent": 100}
         lemmas = {"n": {"below", "missing"}, "v": set(), "a": set()}
         exceptions = {"n": {}, "v": {}, "a": {}}
         db = build_database(words, sum(map(len, words.values())), ranks, lemmas, exceptions, {})
-        self.assertEqual(db["version"], 4)
-        self.assertEqual(db["source"]["commonWords"], {
-            "minimumZipf": 3.5, "countsByCode": {"0": 3, "00": 2, "12": 1},
-        })
+        self.assertEqual(db["version"], 5)
         self.assertEqual(db["byCode"]["00"], [
-            ["above", ""], ["at", ""], ["below", "n"], ["missing", "n"],
+            ["above", "", 351], ["at", "", 350], ["below", "n", 349], ["missing", "n", 0],
         ])
+        self.assertEqual(db["byCode"]["99"], [["maximum", "", 900]])
+        self.assertEqual(db["byCode"]["12"], [["only-common", "", 350]])
+        self.assertEqual(db["byCode"]["123"], [["only-rare", "", 349]])
+        for code in ["0", "00"]:
+            self.assertEqual(next(entry[2] for entry in db["byCode"][code] if entry[0] == "above"), 351)
 
     def test_packed_dictionary_is_deterministic_and_preserves_code_and_word_order(self):
-        db = {"version": 4, "source": {
-            "test": True, "commonWords": {"minimumZipf": 3.5, "countsByCode": {"00": 1, "12": 1}},
-        }, "byCode": {
-            "12": [["common", "nva"], ["rare", ""]],
-            "00": [["says", "nv"]],
-            "123": [["longer", "a"]],
-            "1": [["one", "n"], ["two", "v"], ["three", "na"], ["four", "va"]],
+        db = {"version": 5, "source": {"test": True}, "byCode": {
+            "12": [["common", "nva", 350], ["rare", "", 0]],
+            "00": [["says", "nv", 500]],
+            "123": [["longer", "a", 151]],
+            "1": [["one", "n", 900], ["two", "v", 773], ["three", "na", 350], ["four", "va", 0]],
         }}
         packed = pack_database(db)
         self.assertEqual(pack_database(db), packed)
         self.assertEqual(packed[4:8], b"\0\0\0\0")
-        header, flags, words = gzip.decompress(packed).decode().split("\n", 2)
+        header, flags, frequencies, words = gzip.decompress(packed).decode().split("\n", 3)
         header = json.loads(header)
         self.assertEqual(header["format"], "digitloom-columns")
+        self.assertEqual(header["version"], 2)
         self.assertEqual(header["codes"], ["00", "1", "12", "123"])
         self.assertEqual(header["counts"], [1, 4, 2, 1])
         self.assertEqual(flags, "31256704")
+        self.assertEqual([int(frequencies[index:index + 2], 36) for index in range(0, len(frequencies), 2)],
+                         [500, 900, 773, 350, 0, 350, 0, 151])
         self.assertEqual(words.split("\n"), ["says", "one", "two", "three", "four", "common", "rare", "longer"])
         self.assertEqual(header["source"], db["source"])
-        self.assertEqual(header["dictionaryVersion"], 4)
-        db["byCode"]["0"] = [["bad\nword", ""]]
+        self.assertEqual(header["dictionaryVersion"], 5)
+        db["byCode"]["0"] = [["bad\nword", "", 0]]
         with self.assertRaises(ValueError):
             pack_database(db)
+        for frequency in [-1, 901, 0.5, True, "350", None]:
+            db["byCode"]["0"] = [["word", "", frequency]]
+            with self.assertRaisesRegex(ValueError, "Invalid word frequency"):
+                pack_database(db)
 
-    def test_committed_vocabulary_ranking_and_tags_have_the_approved_fingerprint(self):
+    def test_committed_vocabulary_ranking_tags_and_frequencies_have_the_approved_fingerprint(self):
         database = Path(__file__).resolve().parent.parent / "web" / "data" / "db.json"
         by_code = json.loads(database.read_text())["byCode"]
         content = json.dumps(by_code, sort_keys=True, separators=(",", ":")).encode()
         self.assertEqual(hashlib.sha256(content).hexdigest(),
-                         "694f98fdda69516e60c36f4f927279cdacff76ac48d01fe5e433d4923cbe3bc5")
+                         "e6d3e151c5894a524e961b780ee9a015a157465e5cd7905c6f135a6c84e386f1")
 
     def test_source_checksums_and_generated_check_are_strict(self):
         with tempfile.TemporaryDirectory() as directory:

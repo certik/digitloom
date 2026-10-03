@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { PROFILE_LIMITS, encodePao, findDuplicates, parseProfile } from '../web/pao-logic.js';
+import { isCommonWord } from '../web/logic.js';
 
 const problems = new WeakMap();
 const allowedOrigins = new Set(['http://127.0.0.1:4173', 'http://127.0.0.1:4174']);
@@ -136,7 +137,11 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/*', (route) => {
     const request = route.request();
     const url = new URL(request.url());
-    if (request.method() !== 'GET' || url.search) failures.push(`Unexpected ${request.method()} request: ${request.url()}`);
+    const versionedAsset = url.search === '?v=5' &&
+      /\/(?:app\.js|pao\.js|logic\.js|dictionary\.js|styles\.css|data\/db\.(?:json|txt\.gz))$/.test(url.pathname);
+    if (request.method() !== 'GET' || (url.search && !versionedAsset)) {
+      failures.push(`Unexpected ${request.method()} request: ${request.url()}`);
+    }
     if (allowedOrigins.has(url.origin)) return route.continue();
     failures.push(`Unexpected remote request: ${request.url()}`);
     return route.abort();
@@ -227,7 +232,7 @@ test('partial scenes, leading zeros, invalid input, and a separate one-digit end
   const firstChoice = tail.getByRole('button', { name: `Choose ${first} (5)`, exact: true });
   await expect(firstChoice).toBeVisible();
   await expect(tail.getByRole('heading', { name: '1-digit words', exact: true })).toBeVisible();
-  const commonEndings = dictionary.source.commonWords.countsByCode['5'] ?? 0;
+  const commonEndings = words.filter(([, , frequency]) => isCommonWord(frequency)).length;
   await expect(tail.locator('.word-spelling')).toHaveText(words.slice(0, 24).map(([word]) => word));
   await expect(tail.locator('.recommended')).toHaveCount(Math.min(24, commonEndings));
   await expandWords(page, tail, words.length);
@@ -945,7 +950,7 @@ test('peg ideas load the dictionary only on request, with honest failures and re
     if (path.includes('/data/db')) requests.push(path);
   });
   let fail = true;
-  await page.route('**/data/db.txt.gz', (route) => (fail ? route.abort() : route.fallback()));
+  await page.route('**/data/db.txt.gz*', (route) => (fail ? route.abort() : route.fallback()));
   await openPao(page);
   await numberInput(page).fill('327753');
   await button(page, 'Edit table').click();
@@ -961,7 +966,7 @@ test('peg ideas load the dictionary only on request, with honest failures and re
   await panel.getByRole('button', { name: 'Try again', exact: true }).click();
   const entries = dictionary.byCode['32'];
   const words = entries.map(([word]) => word);
-  const common = dictionary.source.commonWords.countsByCode['32'];
+  const common = entries.filter(([, , frequency]) => isCommonWord(frequency)).length;
   await expect(panel.locator('.word-spelling')).toHaveText(words.slice(0, 24));
   await expect(panel.locator('.word-choice').first()).toBeFocused();
   await expect(panel.locator('.recommended')).toHaveCount(Math.min(24, common));
@@ -1007,7 +1012,7 @@ test('peg ideas load the dictionary only on request, with honest failures and re
 
 test('a final-digit ending reports dictionary failures and retries without inventing words', async ({ page }) => {
   let fail = true;
-  await page.route('**/data/db.txt.gz', (route) => (fail ? route.fulfill({ body: Buffer.from([0x1f, 0x8b, 0x08, 0x00]) }) : route.fallback()));
+  await page.route('**/data/db.txt.gz*', (route) => (fail ? route.fulfill({ body: Buffer.from([0x1f, 0x8b, 0x08, 0x00]) }) : route.fallback()));
   await openPao(page);
   await numberInput(page).fill('327');
   const tail = page.getByRole('region', { name: 'Final digit 7', exact: true });

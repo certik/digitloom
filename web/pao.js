@@ -1,5 +1,5 @@
-import { loadDictionary } from './dictionary.js';
-import { getCandidates, normalizeInput, partOfSpeechLabel } from './logic.js';
+import { loadDictionary } from './dictionary.js?v=5';
+import { getCandidates, isCommonWord, normalizeInput, partOfSpeechLabel } from './logic.js?v=5';
 import {
   PAO_ROLES, PROFILE_LIMITS, createBlankProfile, encodePao, findDuplicates, parseProfile, serializeProfile
 } from './pao-logic.js';
@@ -399,7 +399,7 @@ function renderScenes() {
   moreScenes.textContent = `Show ${plural(next, 'more scene', 'more scenes')}`;
 }
 
-function wordButton([word, code, pos], index, label, idPrefix, onChoose) {
+function wordButton([word, code, pos, frequency], index, label, idPrefix, onChoose) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'word-choice';
@@ -420,8 +420,7 @@ function wordButton([word, code, pos], index, label, idPrefix, onChoose) {
     button.append(grammar);
     descriptions.push(grammar.id);
   }
-  // Ranked lists start with the words at or above the common-word cutoff.
-  if (index < (dictionary.source.commonWords.countsByCode[code] ?? 0)) {
+  if (isCommonWord(frequency)) {
     button.classList.add('recommended');
     const recommendation = document.createElement('span');
     recommendation.className = 'word-recommendation';
@@ -573,8 +572,8 @@ function fillIdeas(panel, code) {
   const choices = document.createElement('div');
   choices.className = 'choices';
   const shown = allIdeas ? entries : entries.slice(0, IDEA_PREVIEW);
-  shown.forEach(([word, pos], index) => {
-    choices.append(wordButton([word, code, pos], index, `Use ${word} as the peg for ${code}`,
+  shown.forEach(([word, pos, frequency], index) => {
+    choices.append(wordButton([word, code, pos, frequency], index, `Use ${word} as the peg for ${code}`,
       `idea-${code}`, () => usePeg(code, word)));
   });
   panel.replaceChildren(heading, note, choices);

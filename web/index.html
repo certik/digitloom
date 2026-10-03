@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#f7f5f0">
   <title>DigitLoom - Give numbers a memorable shape</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
   <a class="skip-link" href="#workspace">Skip to the word builder</a>
@@ -35,6 +35,24 @@
           placeholder="Try 3277" aria-describedby="number-hint input-error" disabled>
         <button id="clear" class="button secondary" type="button" disabled>Clear</button>
       </div>
+      <details class="word-filter" id="word-filter">
+        <summary>Filter</summary>
+        <div class="filter-content">
+          <label class="common-only-toggle" for="common-only">
+            <input id="common-only" type="checkbox" disabled>Common words only
+          </label>
+          <div class="cutoff-control">
+            <div class="cutoff-label">
+              <label for="frequency-cutoff">Frequency cutoff</label>
+              <output id="frequency-value" for="frequency-cutoff" aria-hidden="true">Zipf 3.5</output>
+            </div>
+            <input id="frequency-cutoff" type="range" min="1" max="8" step="0.1" value="3.5"
+              aria-describedby="frequency-hint" aria-valuetext="Zipf 3.5" disabled>
+          </div>
+          <button id="reset-cutoff" class="button secondary" type="button" disabled>Reset 3.5</button>
+          <p id="frequency-hint">Lower includes more green words; higher includes fewer.</p>
+        </div>
+      </details>
       <details class="sound-key" id="sound-key">
         <summary>Sound key</summary>
         <div class="sound-key-content">
@@ -74,9 +92,10 @@
     <section class="options-area" aria-labelledby="step-title" hidden>
       <h2 id="step-title" aria-live="polite">Type digits to begin</h2>
       <p id="empty-options" class="empty-options" hidden></p>
+      <button id="show-all-words" class="button secondary" type="button" hidden>Show all words</button>
       <div id="options"></div>
     </section>
   </main>
-  <script type="module" src="app.js"></script>
+  <script type="module" src="app.js?v=5"></script>
 </body>
 </html>

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Data &amp; licenses - DigitLoom</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
   <header class="site-header">
@@ -37,10 +37,11 @@
       Copyright 2022 Robyn Speer. DigitLoom reads frequency bins for exact
       lowercase spellings, not wordfreq's tokenization or phrase estimation.
       Frequency ties are alphabetical; words missing from the frequency list
-      remain available at the end of their group. Green highlights mark every
-      word with a Zipf score of at least 3.5, approximately 3.2 occurrences per
-      million words, without a per-group quota. Lower-frequency and unranked
-      words are not highlighted.</p>
+      remain available at the end of their group. Green highlights default to
+      Zipf 3.5, approximately 3.2 occurrences per million words, without a
+      per-group quota. The word builder's Filter control can adjust this
+      cutoff and hide lower-frequency alternatives. Unranked words are never
+      highlighted. PAO peg ideas and endings use the default cutoff.</p>
     <p>The data is licensed under
       <a href="licenses/CC-BY-SA-4.0.txt">Creative Commons
       Attribution-ShareAlike 4.0 International</a>. The full
@@ -61,8 +62,8 @@
     <h2>Using and sharing the results</h2>
     <p>DigitLoom's project-authored software is MIT licensed. The combined
       dictionary has different terms: the
-      <a href="data/db.json">readable JSON</a> and its equivalent
-      <a href="data/db.txt.gz">compact gzip download</a> are distributed under
+      <a href="data/db.json?v=5">readable JSON</a> and its equivalent
+      <a href="data/db.txt.gz?v=5">compact gzip download</a> are distributed under
       <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>
       with all the source notices retained. Keep the attributions, identify your
       modifications, and follow the share-alike terms when redistributing or
@@ -70,9 +71,9 @@
       The starter PAO table has its own share-alike terms, described below.</p>
     <h2>What the build changes</h2>
     <p>The build turns phonemes into digit strings, assigns frequency ranks and
-      possible parts of speech, and groups words by exact code. It records the
-      common-word cutoff and how many entries at the start of each ranked group
-      meet it. It does not guess
+      possible parts of speech, and groups words by exact code. Each record
+      retains its exact wordfreq Zipf score in hundredths, or zero when
+      no frequency is available. It does not guess
       pronunciations from spelling. Stress and most vowels are ignored, but the
       r-colored vowel ER encodes 4. TH and DH encode 1, NG encodes 2, and ZH
       encodes 6. Each repeated consonant sound contributes its own digit.</p>
@@ -80,9 +81,10 @@
       excluded from suggestions. Source metadata lists these exclusions.
       A source dictionary can contain errors or omit a pronunciation; its
       coverage is not a claim to include every English word or accent.</p>
-    <p>The compact download separates word spellings and part-of-speech masks
-      into columns, orders code groups for compression, and applies gzip.
-      Unpacking restores the complete ranked dictionary and source metadata.
+    <p>The compact download separates word spellings, part-of-speech masks,
+      and frequency values into columns, orders code groups for compression,
+      and applies gzip. Unpacking restores the complete ranked dictionary,
+      frequency scores, and source metadata.
       Browsers with native decompression use it directly; others load JSON.
       No externally hosted decoder is needed.</p>
     <h2 id="pao-starter">The starter PAO table</h2>
