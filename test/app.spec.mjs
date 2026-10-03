@@ -150,6 +150,7 @@ test('length groups, frequency recommendations, plain grammar labels and exact c
     await expect(group.locator('.word-spelling')).toHaveText(rankedWords);
     await expect(group.locator('.recommended .word-spelling')).toHaveText(rankedWords.slice(0, 5));
     await expect(group.locator('.word-recommendation')).toHaveText(Array(Math.min(5, count)).fill('Recommended'));
+    for (const label of await group.locator('.word-recommendation').all()) await expect(label).toBeHidden();
   }
   const common = page.getByRole('region', { name: '2-digit words', exact: true }).getByRole('button');
   await expect(common.nth(0).locator('.word-spelling')).toHaveText("don't");

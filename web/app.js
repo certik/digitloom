@@ -43,15 +43,13 @@ function wordButton(entry, index) {
   button.setAttribute('aria-label', `Choose ${word} (${code})`);
   button.dataset.code = code;
   const descriptions = [];
-  const details = document.createElement('span');
-  details.className = 'word-details';
   const label = partOfSpeechLabel(flags);
   if (label) {
     const grammar = document.createElement('span');
     grammar.className = 'word-grammar';
     grammar.id = `grammar-${code}-${index}`;
     grammar.textContent = label;
-    details.append(grammar);
+    button.append(grammar);
     descriptions.push(grammar.id);
   }
   if (index < 5) {
@@ -59,14 +57,12 @@ function wordButton(entry, index) {
     const recommendation = document.createElement('span');
     recommendation.className = 'word-recommendation';
     recommendation.id = `recommendation-${code}-${index}`;
+    recommendation.hidden = true;
     recommendation.textContent = 'Recommended';
-    details.append(recommendation);
+    button.append(recommendation);
     descriptions.push(recommendation.id);
   }
-  if (descriptions.length) {
-    button.append(details);
-    button.setAttribute('aria-describedby', descriptions.join(' '));
-  }
+  if (descriptions.length) button.setAttribute('aria-describedby', descriptions.join(' '));
   button.addEventListener('click', () => choose(entry));
   return button;
 }

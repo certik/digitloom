@@ -81,9 +81,7 @@ progress::-moz-progress-bar { background: var(--progress-fill); }
 .word-choice:hover { background: #eef2e9; border-color: #7c937d; }
 .word-choice.recommended { background: #e6efe0; border-color: #9bae94; }
 .word-choice.recommended:hover { background: #dbe7d3; border-color: #7c937d; }
-.word-details { display: flex; flex-wrap: wrap; gap: 0 0.5rem; }
 .word-grammar { color: var(--muted); font-size: 0.68rem; margin-top: 0.1rem; }
-.word-recommendation { color: var(--muted); font-size: 0.68rem; margin-top: 0.1rem; }
 .error { border-left: 3px solid #a12834; color: #8e2430; padding: 0.65rem 0.9rem; background: #fff1ee; margin-block: 1rem; font-size: 0.9rem; overflow-wrap: anywhere; }
 .site-footer { margin-top: 3rem; padding-block: 1.5rem 2.5rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.75rem; }
 .site-footer p { margin-bottom: 0.4rem; }

@@ -36,8 +36,8 @@ would be `https://certik.github.io/digitloom/`; a custom domain is optional.
   beneath the number. Instructions and data details live on separate pages.
 - Word groups ordered by encoded length, longest first.
 - Common words first within each length, with alphabetical frequency ties.
-- The five highest-ranked choices in each group highlighted and labelled
-  "Recommended", without changing word typography or popularity order.
+- The five highest-ranked choices in each group highlighted in green,
+  without changing word typography or popularity order.
 - Optional Auto split for mixed 2-4-digit word chunks, with a one-digit ending
   only when no complete split avoids it. All word lengths remain available
   with Auto split off.
