@@ -15,7 +15,7 @@ CACHE = ROOT / ".cache" / "word-data"
 SOURCES = ROOT / "scripts" / "dictionary-sources.json"
 OUTPUT = ROOT / "web" / "data" / "db.json"
 PACKED_OUTPUT = ROOT / "web" / "data" / "db.txt.gz"
-MIN_COMMON_ZIPF = 3.5
+BASE36 = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 PHONEMES = {
     phone: str(digit)
@@ -114,29 +114,25 @@ def part_of_speech(word, lemmas, exceptions):
 
 def build_database(pronunciations, entry_count, ranks, lemmas, exceptions, sources):
     by_code = defaultdict(list)
-    common_counts = Counter()
-    # A wordfreq bin rank is the negative centibel frequency: Zipf = 9 - rank / 100.
-    maximum_common_rank = round((9 - MIN_COMMON_ZIPF) * 100)
     words = sorted(pronunciations, key=lambda word: (ranks.get(word, float("inf")), word))
     skipped = []
     for word in words:
         flags = part_of_speech(word, lemmas, exceptions)
-        common = ranks.get(word, float("inf")) <= maximum_common_rank
+        # The bin index is negative centibels; store Zipf hundredths, or 0 if unranked.
+        frequency = 900 - ranks[word] if word in ranks else 0
         for code in sorted(pronunciations[word]):
             if code:
-                by_code[code].append([word, flags])
-                if common:
-                    common_counts[code] += 1
+                by_code[code].append([word, flags, frequency])
             else:
                 skipped.append(word)
     by_code = dict(sorted(by_code.items(), key=lambda item: (len(item[0]), item[0])))
     pair_count = sum(map(len, by_code.values()))
-    encoded_words = {word for entries in by_code.values() for word, _ in entries}
+    encoded_words = {word for entries in by_code.values() for word, _, _ in entries}
     pairs_by_length = Counter()
     for code, entries in by_code.items():
         pairs_by_length[len(code)] += len(entries)
     return {
-        "version": 4,
+        "version": 5,
         "source": {
             "name": "DigitLoom dictionary: CMUdict, wordfreq, and WordNet",
             "datasets": sources,
@@ -149,15 +145,12 @@ def build_database(pronunciations, entry_count, ranks, lemmas, exceptions, sourc
             "codeCount": len(by_code),
             "maxCodeLength": max(map(len, by_code)),
             "pairsByLength": dict(sorted(pairs_by_length.items())),
-            "commonWords": {
-                "minimumZipf": MIN_COMMON_ZIPF,
-                "countsByCode": dict(sorted(common_counts.items())),
-            },
             "zeroDigitWords": sorted(set(skipped)),
             "phonemeDigits": PHONEMES,
             "ignoredPhonemes": sorted(IGNORED),
             "note": "All digit-bearing pronunciations in the pinned CMUdict, ranked by wordfreq "
-                    "and enriched with WordNet part-of-speech hints. Not every English word.",
+                    "with exact Zipf hundredths (0 means unranked), and enriched with WordNet "
+                    "part-of-speech hints. Not every English word.",
         },
         "byCode": by_code,
     }
@@ -173,23 +166,26 @@ def checked_bytes(path, expected):
 
 def pack_database(db):
     codes = sorted(db["byCode"])
-    words, flags, counts = [], [], []
+    words, flags, frequencies, counts = [], [], [], []
     for code in codes:
         entries = db["byCode"][code]
         counts.append(len(entries))
-        for word, pos in entries:
+        for word, pos, frequency in entries:
             if not word or "\n" in word or "\r" in word:
                 raise ValueError(f"Word cannot be represented in the packed dictionary: {word!r}")
             if not re.fullmatch(r"n?v?a?", pos):
                 raise ValueError(f"Invalid part-of-speech flags: {pos!r}")
+            if type(frequency) is not int or not 0 <= frequency <= 900:
+                raise ValueError(f"Invalid word frequency: {frequency!r}")
             words.append(word)
             flags.append(str(int("n" in pos) | (int("v" in pos) << 1) | (int("a" in pos) << 2)))
+            frequencies.append(BASE36[frequency // 36] + BASE36[frequency % 36])
     header = {
-        "format": "digitloom-columns", "version": 1, "dictionaryVersion": db["version"],
+        "format": "digitloom-columns", "version": 2, "dictionaryVersion": db["version"],
         "source": db["source"], "codes": codes, "counts": counts,
     }
     text = json.dumps(header, separators=(",", ":"), ensure_ascii=True) + "\n"
-    text += "".join(flags) + "\n" + "\n".join(words)
+    text += "".join(flags) + "\n" + "".join(frequencies) + "\n" + "\n".join(words)
     output = BytesIO()
     # No filename or timestamp: repeated builds produce the same gzip header.
     with gzip.GzipFile(filename="", mode="wb", fileobj=output, compresslevel=9, mtime=0) as stream:

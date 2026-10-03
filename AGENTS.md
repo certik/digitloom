@@ -21,9 +21,9 @@ pronunciation data and original interface design; keep the app fully static.
 | `scripts/compression-formats.mjs` | Experimental lossless representations, used only by the benchmark. |
 | `scripts/benchmark-compression.mjs` | Compression sizes, decode costs, sharding estimates, and optional browser/extended measurements. |
 | `reports/compression-benchmark.json` | Measured results and input/output hashes for the current dictionary. |
-| `web/index.html` | Accessible word builder, memory thread, progress, inline sound key, and suggestions. |
-| `web/app.js` | Original UI controller; loads the dictionary and renders selections, validation, and length groups. |
-| `web/logic.js` | Generic input normalization, state transitions, lookup, validation, grouping, and plain-text POS labels. |
+| `web/index.html` | Accessible word builder, memory thread, progress, sound key, frequency filters, and suggestions. |
+| `web/app.js` | Original UI controller; loads the dictionary and renders selections, filters, validation, and length groups. |
+| `web/logic.js` | Input normalization, state transitions, frequency predicates, lookup, validation, grouping, and plain-text POS labels. |
 | `web/dictionary.js` | Strict packed-format decoder and native gzip/JSON transport. |
 | `web/pao.html` | PAO encoder page: number input, scene cards, issues, final-digit ending, table actions, and the collapsible editor. |
 | `web/pao.js` | PAO UI controller: starter loading, scenes, warnings, lazy dictionary endings and peg ideas, editing, filters, and table import/export. |
@@ -33,8 +33,8 @@ pronunciation data and original interface design; keep the app fully static.
 | `web/icon.svg` | Original woven-line brand mark and favicon. |
 | `web/guide.html` | Instructions, sound families, the moon-cake example, and PAO scenes. |
 | `web/sources.html` | Public source credit, licenses, descriptions of data transformations, and the starter PAO table's terms. |
-| `web/data/db.json` | Canonical, tracked format-4 dictionary: source metadata and `byCode` ranked word/POS lists. |
-| `web/data/db.txt.gz` | Equivalent tracked `digitloom-columns` version-1 payload with deterministic gzip headers. |
+| `web/data/db.json` | Canonical, tracked format-5 dictionary: source metadata and `byCode` ranked word/POS/Zipf records. |
+| `web/data/db.txt.gz` | Equivalent tracked `digitloom-columns` version-2 payload with deterministic gzip headers. |
 | `web/data/pao-starter.json` | Original, editable CC BY-SA 4.0 starter PAO table with pegs from the dictionary vocabulary. |
 | `web/licenses/CMUdict.txt` | Upstream Carnegie Mellon dictionary notice. |
 | `web/licenses/WordNet.txt` | Upstream Princeton WordNet 3.0 notice. |
@@ -65,16 +65,20 @@ Never hand-edit generated assets. `byCode` preserves frequency ranking within
 each code, including alphabetical tie-breaking. Longest-first grouping belongs
 to the UI, not to a lossy data transformation.
 
-`source.commonWords` records `minimumZipf: 3.5` and sparse positive
-`countsByCode`. The first that-many entries of each frequency-ranked list
-qualify for green highlights; omitted codes have none. Preserve this prefix
-invariant and derive eligibility from exact wordfreq bins, not POS or list size.
+Each `byCode` record is `[word, pos, frequency]`; frequency is the exact
+wordfreq Zipf score in integer hundredths, with 0 reserved for unranked words.
+`getCandidates` returns `[word, code, pos, frequency]`. Highlight eligibility
+comes from the score, not a candidate's index after filtering, POS, or list size.
+Keep frequency order within each code and retain every word and pronunciation.
 
 The packed format starts with a JSON header (`format: "digitloom-columns"`,
-version 1, dictionaryVersion 4, source, codes, counts), followed by one line of
-POS masks (n=1, v=2, a=4) and newline-separated spellings. The decoder restores
-the same canonical dictionary. Native gzip is preferred; JSON is a capability
-fallback, never a silent retry for a broken compressed download.
+version 2, dictionaryVersion 5, source, codes, counts), followed by a POS-mask
+line (n=1, v=2, a=4), a frequency line (two lowercase base36 characters per
+integer score), and newline-separated spellings. The decoder restores the
+same canonical dictionary, including scores. Native gzip is preferred; JSON
+is a capability fallback, never a silent retry for a broken compressed download.
+Update fixed asset revisions in HTML, module imports, and dictionary requests
+together when a format change would make cached decoders incompatible.
 
 ## UX and release invariants
 
@@ -84,8 +88,12 @@ State must remain correct after editing, clearing, selecting, or undoing.
 Suggestions cover at least two digits while multiple digits remain, and one
 digit when a single digit remains.
 Auto split is opt-in: plan complete 2-4-digit chunks, avoid a final single digit
-when possible, and preserve selected words when switching modes. Green highlights
-include every word at Zipf 3.5 or above, with no cap or minimum and no reordering.
+when possible, and preserve selected words when switching modes. With common-only
+filtering, Auto split plans complete chunks using only words at the current cutoff.
+Green highlights default to Zipf 3.5, with no quota or reordering. The main-page
+Filter panel supports cutoffs 1.0-8.0 in 0.1 steps and can hide uncommon words.
+Unranked words never qualify. Filter changes preserve selections; Clear keeps
+filter settings. An empty filtered result must explain how to recover.
 
 No external scripts, fonts, analytics, API requests, or accounts at runtime.
 Retain relative asset links for project-site deployment. Keep numbers out of
@@ -93,6 +101,8 @@ URLs, storage, and network requests. Maintain responsive word wrapping, focus
 indicators, and readable grammatical labels. All word spellings share one
 color and weight; POS information appears as plain text, not color or bolding.
 Code lengths belong in group headings, not per-word superscripts.
+Fixed asset-revision query strings are allowed; never derive them from target
+numbers, word choices, or cutoff settings.
 
 Publish only `web/`, with its data and required license notices. Code is MIT;
 the combined dictionary remains CC BY-SA 4.0 with source conditions respected.
@@ -114,7 +124,7 @@ NFC-insensitive) are explicit warnings that focus their table cells. Progress
 counts only resolved pairs and a chosen ending; never report a number as
 encoded while anything is unresolved. Encode long numbers completely and
 paginate their scenes. Green marks belong only to dictionary words (peg ideas
-and endings) under the canonical common-word prefix, never to associations.
+and endings) at the default Zipf 3.5 cutoff, never to associations.
 
 Profiles are `digitloom-pao` version 1 with 100 sorted `00`-`99` rows; imports
 may be partial. Keep tables in memory: no automatic storage, and no tables,

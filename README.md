@@ -38,8 +38,9 @@ would be `https://certik.github.io/digitloom/`; a custom domain is optional.
   beneath the number. Instructions and data details live on separate pages.
 - Word groups ordered by encoded length, longest first.
 - Common words first within each length, with alphabetical frequency ties.
-- Every word with a wordfreq Zipf score of at least 3.5 highlighted in green,
-  without changing word typography or popularity order. There is no fixed quota.
+- Green highlights based on wordfreq frequency, with a default Zipf cutoff
+  of 3.5 and no fixed quota. A Filter panel can hide uncommon alternatives
+  and adjust the cutoff without changing word typography or popularity order.
 - Optional Auto split for mixed 2-4-digit word chunks, with a one-digit ending
   only when no complete split avoids it. All word lengths remain available
   with Auto split off.
@@ -72,18 +73,30 @@ and replans only the remaining digits. Editing still starts a new thread;
 Clear leaves the chosen mode in place. If no complete split exists, the app
 explains this instead of silently changing modes.
 
-Green highlights use a fixed wordfreq Zipf cutoff of 3.5, approximately 3.2
-occurrences per million words. Every qualifying word is highlighted, whether
-that means dozens, one, or none in a group. Lower-frequency and unranked words
-remain available without highlights. Grammar labels do not affect this rule;
-usage frequency is a guide, not a personal familiarity or memorability score.
+Green highlights default to a wordfreq Zipf cutoff of 3.5, approximately 3.2
+occurrences per million words. Open **Filter** beside the input to adjust the
+cutoff from 1.0 to 8.0 in 0.1 steps. Lower values include more green words;
+higher values include fewer. **Reset 3.5** restores the default cutoff.
+Every qualifying word is highlighted, whether that means dozens, one, or
+none in a group. Grammar labels do not affect this rule; usage frequency is
+a guide, not a personal familiarity or memorability score.
 
-The format-4 dictionary records the cutoff in
-`source.commonWords.minimumZipf` and the number of qualifying words per code in
-`source.commonWords.countsByCode`. Since each list is frequency-sorted, its
-first that-many entries meet the cutoff. Codes omitted from this sparse map
-have zero qualifying words. This preserves the unchanged word/POS lists
-without adding a frequency score to every entry.
+**Common words only** hides lower-frequency and unranked alternatives, along
+with empty length groups. Unranked words never become green, even at the
+lowest cutoff. With Auto split enabled, the planner uses only words meeting
+the current cutoff, so `3277` can split into `32 77` instead of a rare
+four-digit word. If a filter leaves no choices or no complete split, the
+builder explains this and offers **Show all words**; it never silently
+changes the cutoff or drops digits. Changing filters preserves selected
+words and replans only the remaining digits. Clear keeps these controls'
+settings. They live only on this page, not in URLs or browser storage.
+PAO peg ideas and single-digit endings retain the default 3.5 cutoff.
+
+The format-5 dictionary stores each entry as `[word, pos, frequency]`.
+`frequency` is the exact wordfreq Zipf score in integer hundredths: for
+example, 470 means Zipf 4.70. Zero marks an unranked spelling, not a measured
+zero frequency. Retaining the original hundredths makes every supported
+cutoff accurate without replacing frequency order with a curated list.
 
 ## PAO scenes
 
@@ -196,11 +209,11 @@ are retained. Zero-digit pronunciations cannot advance an input and are excluded
 from suggestions; the metadata records them. CMUdict mainly represents North
 American English and does not include every English word or pronunciation.
 
-The vocabulary/rank/POS fingerprint is SHA-256 of
+The vocabulary/rank/POS/frequency fingerprint is SHA-256 of
 `json.dumps(db["byCode"], sort_keys=True, separators=(",", ":")).encode()`:
 
 ```text
-694f98fdda69516e60c36f4f927279cdacff76ac48d01fe5e433d4923cbe3bc5
+e6d3e151c5894a524e961b780ee9a015a157465e5cd7905c6f135a6c84e386f1
 ```
 
 ### Sound mapping
@@ -256,18 +269,25 @@ fingerprints, and tests together.
 
 ## Compact browser download
 
-The readable JSON is about 2.43 MB. Modern browsers instead download
-`web/data/db.txt.gz`, about **533 KB**, using native `DecompressionStream`.
-This is approximately a **78% transfer reduction** on a plain static host.
+The readable JSON is about 2.82 MB. Modern browsers instead download
+`web/data/db.txt.gz`, about **641 KB**, using native `DecompressionStream`.
+This is approximately a **77% transfer reduction** on a plain static host.
 No external decompression library or server compression setting is required.
 Browsers without the native API fetch JSON. Download/decompression errors are
 reported explicitly, not hidden by downloading the larger fallback.
 
-The packed format has a JSON header identifying `digitloom-columns` version 1,
-the version-4 dictionary metadata, lexical code order, and counts. A second line
-contains POS masks (noun=1, verb=2, adjective=4); subsequent lines are words.
-Within-code ranked order is preserved exactly. Gzip level 9 omits the filename
-and timestamp. Both transport forms restore identical dictionaries.
+The packed format has a JSON header identifying `digitloom-columns` version 2,
+the version-5 dictionary metadata, lexical code order, and counts. A second line
+contains POS masks (noun=1, verb=2, adjective=4). A third line contains two
+lowercase base36 characters per frequency value, including `00` for unranked;
+subsequent lines are word spellings. Within-code rank, POS hints, and exact
+Zipf hundredths are preserved. Gzip level 9 omits the filename and timestamp.
+Both transport forms restore identical dictionaries.
+
+Entry scripts, shared dictionary modules, styles, and dictionary downloads
+use a fixed `?v=5` asset revision so refreshed pages do not mix older cached
+decoders with the new data format. This revision is constant: numbers,
+choices, and cutoff settings are never included in URLs or requests.
 
 `reports/compression-benchmark.json` records reproducible format, gzip/Brotli,
 sharding, and browser measurements for the current assets. Reproduce them with:

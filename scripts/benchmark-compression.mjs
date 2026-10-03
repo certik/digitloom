@@ -74,7 +74,7 @@ const report = {
   inputSha256: createHash('sha256').update(input).digest('hex'),
   baselineBytes: input.length,
   environment: { node: process.version, platform: process.platform, arch: process.arch },
-  methodology: 'All representations preserve source metadata, every word/code/POS pair, and within-code rank. Median of 7 warm Node decode+validation trials. Compression uses Node zlib. Browser timings are measured separately.',
+  methodology: 'All representations preserve source metadata, every word/code/POS/Zipf record, and within-code rank. Median of 7 warm Node decode+validation trials. Compression uses Node zlib. Browser timings are measured separately.',
   results,
   firstDigitShards: Object.fromEntries(Object.entries(shardSizes).map(([codec, bytes]) => [
     codec, { sizes: bytes, totalBytes: bytes.reduce((sum, n) => sum + n, 0), meanInitialBytes: Math.round(bytes.reduce((sum, n) => sum + n, 0) / 10) }
@@ -136,11 +136,12 @@ if (process.argv.includes('--browser')) {
   fixtures.set('/logic.js', fixtures.get('/logic.mjs'));
   fixtures.set('/dictionary.js', { bytes: await readFile(new URL('web/dictionary.js', root)), type: 'text/javascript' });
   const server = createServer((request, response) => {
-    if (request.url === '/') {
+    const path = new URL(request.url, 'http://127.0.0.1').pathname;
+    if (path === '/') {
       response.writeHead(200, { 'Content-Type': 'text/html' }).end('<!doctype html><title>Dictionary benchmark</title>');
       return;
     }
-    const fixture = fixtures.get(request.url);
+    const fixture = fixtures.get(path);
     if (!fixture) {
       response.writeHead(404).end();
       return;

@@ -4,6 +4,7 @@ import { gunzipSync } from 'node:zlib';
 
 const problems = new WeakMap();
 const allowedOrigins = new Set(['http://127.0.0.1:4173', 'http://127.0.0.1:4174']);
+const dictionary = JSON.parse(await readFile(new URL('../web/data/db.json', import.meta.url)));
 const choose = (page, word, code) => page.getByRole('button', { name: `Choose ${word} (${code})`, exact: true });
 
 test.beforeEach(async ({ page }) => {
@@ -11,8 +12,15 @@ test.beforeEach(async ({ page }) => {
   problems.set(page, failures);
   page.on('pageerror', (failure) => failures.push(failure.message));
   await page.route('**/*', (route) => {
-    if (allowedOrigins.has(new URL(route.request().url()).origin)) return route.continue();
-    failures.push(`Unexpected remote request: ${route.request().url()}`);
+    const request = route.request();
+    const url = new URL(request.url());
+    const versionedAsset = url.search === '?v=5' &&
+      /\/(?:app\.js|pao\.js|logic\.js|dictionary\.js|styles\.css|data\/db\.(?:json|txt\.gz))$/.test(url.pathname);
+    if (request.method() !== 'GET' || (url.search && !versionedAsset)) {
+      failures.push(`Unexpected ${request.method()} request: ${request.url()}`);
+    }
+    if (allowedOrigins.has(url.origin)) return route.continue();
+    failures.push(`Unexpected remote request: ${request.url()}`);
     return route.abort();
   });
   await page.goto('/web/');
@@ -138,7 +146,6 @@ test('typing, validation, Clear, and zero-prefixed numbers keep the UI coherent'
 });
 
 test('length groups, frequency recommendations, plain grammar labels and exact codes are preserved', async ({ page }) => {
-  const dictionary = JSON.parse(await readFile(new URL('../web/data/db.json', import.meta.url)));
   await page.locator('#number').fill('1234');
   await expect(page.locator('.group-heading h3')).toHaveText(['4-digit words', '3-digit words', '2-digit words']);
   for (const [length, count, commonCount] of [[4, 5, 0], [3, 17, 2], [2, 440, 69]]) {
@@ -194,6 +201,216 @@ test('green highlights follow the frequency threshold with no cap or minimum', a
     await expect(group.locator('.recommended')).toHaveCount(count);
     await page.getByRole('checkbox', { name: 'Auto split', exact: true }).uncheck();
   }
+});
+
+test('common-only filtering hides white choices and empty groups without changing ranking', async ({ page }) => {
+  const filter = page.locator('#word-filter');
+  const commonOnly = page.getByRole('checkbox', { name: 'Common words only', exact: true });
+  const cutoff = page.getByRole('slider', { name: 'Frequency cutoff', exact: true });
+  await expect(filter).not.toHaveAttribute('open', '');
+  await filter.locator('summary').click();
+  await expect(commonOnly).not.toBeChecked();
+  await expect(cutoff).toHaveValue('3.5');
+  await expect(page.locator('#reset-cutoff')).toBeDisabled();
+  await page.locator('#number').fill('1234');
+  await commonOnly.check();
+  await expect(page.locator('.group-heading h3')).toHaveText(['3-digit words', '2-digit words']);
+  await expect(page.locator('#options .word-choice')).toHaveCount(71);
+  await expect(page.locator('#options .word-choice:not(.recommended)')).toHaveCount(0);
+  for (const [code, count] of [['123', 2], ['12', 69]]) {
+    const group = page.getByRole('region', { name: `${code.length}-digit words`, exact: true });
+    await expect(group.locator('.word-spelling'))
+      .toHaveText(dictionary.byCode[code].filter(([, , frequency]) => frequency >= 350).map(([word]) => word));
+    await expect(group.locator('.group-heading p')).toHaveText(`${code} / ${count} common of ${dictionary.byCode[code].length} choices`);
+  }
+  await commonOnly.uncheck();
+  await expect(page.locator('.group-heading h3')).toHaveText(['4-digit words', '3-digit words', '2-digit words']);
+  await expect(page.locator('#options .word-choice')).toHaveCount(462);
+  await expect(page.locator('#options .recommended')).toHaveCount(71);
+  await expect(page.locator('#number')).toHaveValue('1234');
+});
+
+test('the cutoff slider changes highlights live and filtered empty results have a recovery action', async ({ page }) => {
+  const requests = [];
+  page.on('request', (request) => requests.push(request.url()));
+  await page.locator('#number').fill('12');
+  await page.locator('#word-filter > summary').click();
+  const cutoff = page.getByRole('slider', { name: 'Frequency cutoff', exact: true });
+  const commonOnly = page.getByRole('checkbox', { name: 'Common words only', exact: true });
+  await expect(page.locator('#options .recommended')).toHaveCount(69);
+  for (let step = 0; step < 5; step += 1) await cutoff.press('ArrowRight');
+  await expect(cutoff).toHaveValue('4');
+  await expect(cutoff).toHaveAttribute('aria-valuetext', 'Zipf 4.0');
+  await expect(page.locator('#frequency-value')).toHaveText('Zipf 4.0');
+  await expect(page.locator('#options .word-choice')).toHaveCount(440);
+  await expect(page.locator('#options .recommended')).toHaveCount(45);
+  await commonOnly.check();
+  await expect(page.locator('#options .word-choice')).toHaveCount(45);
+  await cutoff.press('End');
+  await expect(cutoff).toHaveValue('8');
+  await expect(page.locator('#options')).toBeEmpty();
+  await expect(page.locator('#step-title')).toHaveText('No words at this cutoff');
+  await expect(page.locator('#empty-options')).toContainText('Lower the frequency cutoff');
+  await page.getByRole('button', { name: 'Show all words', exact: true }).click();
+  await expect(commonOnly).not.toBeChecked();
+  await expect(cutoff).toHaveValue('8');
+  await expect(page.locator('#options .word-choice')).toHaveCount(440);
+  await expect(page.locator('#options .recommended')).toHaveCount(0);
+  await expect(page.locator('#options .word-choice').first()).toBeFocused();
+  await expect(page.locator('#options .word-choice').first()).toBeInViewport({ ratio: 1 });
+  await cutoff.press('Home');
+  await expect(cutoff).toHaveValue('1');
+  await expect(page.locator('#options .recommended')).toHaveCount(373);
+  await commonOnly.check();
+  await expect(page.locator('#options .word-choice')).toHaveCount(373);
+  await page.getByRole('button', { name: 'Reset 3.5', exact: true }).click();
+  await expect(cutoff).toHaveValue('3.5');
+  await expect(cutoff).toBeFocused();
+  await expect(commonOnly).toBeChecked();
+  await expect(page.locator('#options .word-choice')).toHaveCount(69);
+  await expect(page.locator('#reset-cutoff')).toBeDisabled();
+  await expect(page.locator('#number')).toHaveValue('12');
+  expect(requests).toEqual([]);
+  expect(new URL(page.url()).search + new URL(page.url()).hash).toBe('');
+  expect(await page.evaluate(() => [localStorage.length, sessionStorage.length, document.cookie])).toEqual([0, 0, '']);
+});
+
+test('frequency controls preserve selections and let Auto split plan only common chunks', async ({ page }) => {
+  const input = page.locator('#number');
+  const split = page.getByRole('checkbox', { name: 'Auto split', exact: true });
+  const commonOnly = page.getByRole('checkbox', { name: 'Common words only', exact: true });
+  const cutoff = page.getByRole('slider', { name: 'Frequency cutoff', exact: true });
+  await input.fill('3277');
+  await choose(page, 'moon', '32').click();
+  await page.locator('#word-filter > summary').click();
+  await commonOnly.check();
+  await expect(page.locator('#options .word-choice')).toHaveCount(14);
+  await cutoff.press('End');
+  await expect(page.locator('#sequence li')).toHaveText(['moon32']);
+  await expect(input).toHaveValue('32 77');
+  await expect(page.locator('#progress-label')).toHaveText('2 of 4 digits encoded');
+  await expect(page.locator('#step-title')).toHaveText('No words at this cutoff');
+  await split.check();
+  await expect(page.locator('#step-title')).toHaveText('No automatic split at this cutoff');
+  await expect(page.locator('#show-all-words')).toBeVisible();
+  await page.getByRole('button', { name: 'Reset 3.5', exact: true }).click();
+  await expect(page.locator('#options .word-choice')).toHaveCount(14);
+  await page.getByRole('button', { name: 'Undo word', exact: true }).click();
+  await expect(input).toHaveValue('32 77');
+  await expect(page.locator('#progress-label')).toHaveText('0 of 4 digits encoded');
+  await expect(page.locator('.group-heading h3')).toHaveText(['2-digit words']);
+  await expect(page.locator('#options .word-choice')).toHaveCount(29);
+  await expect(choose(page, 'menchaca', '3277')).toHaveCount(0);
+  await cutoff.press('Home');
+  await expect(input).toHaveValue('3277');
+  await expect(page.locator('.group-heading h3')).toHaveText(['4-digit words']);
+  await expect(choose(page, 'menchaca', '3277')).toHaveClass('word-choice recommended');
+  await page.getByRole('button', { name: 'Reset 3.5', exact: true }).click();
+  await choose(page, 'moon', '32').click();
+  await expect(page.locator('#options .word-choice').first()).toBeInViewport({ ratio: 1 });
+  await choose(page, 'cake', '77').click();
+  await expect(page.locator('#step-title')).toHaveText('Your number is encoded.');
+  await page.getByRole('button', { name: 'Clear', exact: true }).click();
+  await expect(input).toHaveValue('');
+  await expect(input).toBeFocused();
+  await expect(commonOnly).toBeChecked();
+  await expect(split).toBeChecked();
+  await expect(cutoff).toHaveValue('3.5');
+  await input.fill(' 009 20 ');
+  expect((await input.inputValue()).replaceAll(' ', '')).toBe('00920');
+  await expect(page.locator('#options .word-choice:not(.recommended)')).toHaveCount(0);
+  await input.fill('12a');
+  await expect(input).toHaveAttribute('aria-invalid', 'true');
+  await expect(page.locator('#step-title')).toHaveText('Check your number');
+  await expect(page.locator('#show-all-words')).toBeHidden();
+  await expect(page.locator('#options')).toBeEmpty();
+});
+
+test('filter controls are keyboard and touch accessible without overlapping the input or sound key', async ({ page, isMobile }) => {
+  await page.addStyleTag({ content: '.composer { font-family: Verdana, sans-serif; }' });
+  for (const viewport of [page.viewportSize(), { width: 320, height: 568 }, { width: 375, height: 400 }]) {
+    await page.setViewportSize(viewport);
+    await page.locator('#number').fill('32');
+    const input = await page.locator('#number').boundingBox();
+    const boxes = await Promise.all([
+      'label[for="number"]', 'label[for="auto-split"]', '#word-filter > summary', '#sound-key > summary'
+    ].map((selector) => page.locator(selector).boundingBox()));
+    for (let index = 0; index < boxes.length; index += 1) {
+      expect(boxes[index].y + boxes[index].height).toBeLessThanOrEqual(input.y + 1);
+      if (index) expect(boxes[index - 1].x + boxes[index - 1].width).toBeLessThanOrEqual(boxes[index].x);
+    }
+    const summary = page.locator('#word-filter > summary');
+    if (isMobile) await summary.tap();
+    else {
+      await summary.focus();
+      await summary.press('Enter');
+    }
+    await expect(page.locator('#word-filter')).toHaveAttribute('open', '');
+    const panel = await page.locator('.filter-content').boundingBox();
+    expect(panel.y).toBeGreaterThanOrEqual(input.y + input.height);
+    expect((await page.locator('#number').boundingBox()).y).toBe(input.y);
+    const cutoff = page.getByRole('slider', { name: 'Frequency cutoff', exact: true });
+    await cutoff.press('ArrowRight');
+    await expect(cutoff).toHaveValue('3.6');
+    const activeFilter = await summary.boundingBox();
+    const autoSplit = await page.locator('label[for="auto-split"]').boundingBox();
+    const soundKey = await page.locator('#sound-key > summary').boundingBox();
+    expect(autoSplit.x + autoSplit.width).toBeLessThanOrEqual(activeFilter.x);
+    expect(activeFilter.x + activeFilter.width).toBeLessThanOrEqual(soundKey.x);
+    expect((await cutoff.boundingBox()).height).toBeGreaterThanOrEqual(44);
+    await expect(cutoff).toBeFocused();
+    await page.getByRole('button', { name: 'Reset 3.5', exact: true }).click();
+    await page.locator('#sound-key > summary').click();
+    const keyPanel = await page.locator('.sound-key-content').boundingBox();
+    expect(keyPanel.y).toBeGreaterThanOrEqual(panel.y + panel.height);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
+    await page.locator('#sound-key > summary').click();
+    await summary.click();
+    await expect(page.locator('#word-filter')).not.toHaveAttribute('open', '');
+  }
+});
+
+test('versioned assets avoid stale unversioned scripts, styles, and dictionary downloads', async ({ page }) => {
+  const requests = [];
+  const legacyRequests = [];
+  page.on('request', (request) => requests.push(new URL(request.url()).pathname + new URL(request.url()).search));
+  await page.route(/\/(?:app|pao|logic|dictionary)\.js$/, (route) => {
+    legacyRequests.push(route.request().url());
+    return route.fulfill({ contentType: 'text/javascript', body: 'throw new Error("Stale unversioned script");' });
+  });
+  await page.route(/\/styles\.css$/, (route) => {
+    legacyRequests.push(route.request().url());
+    return route.fulfill({ contentType: 'text/css', body: 'body { display: none !important; }' });
+  });
+  await page.route(/\/data\/db\.(?:json|txt\.gz)$/, (route) => {
+    legacyRequests.push(route.request().url());
+    return route.fulfill({ body: '{}' });
+  });
+  await page.reload();
+  await expect(page.locator('#number')).toBeEnabled();
+  await page.locator('#number').fill('32');
+  await expect(choose(page, 'moon', '32')).toBeVisible();
+  for (const asset of ['app.js', 'logic.js', 'dictionary.js', 'styles.css', 'data/db.txt.gz']) {
+    expect(requests).toContain(`/web/${asset}?v=5`);
+  }
+  await page.goto('/web/pao.html');
+  await expect(page.locator('#pao-number')).toBeEnabled();
+  await page.locator('#pao-number').fill('3277530');
+  await expect(page.locator('#pao-tail .word-choice').first()).toBeVisible();
+  expect(requests).toContain('/web/pao.js?v=5');
+  for (const path of ['guide.html', 'sources.html']) {
+    await page.goto(`/web/${path}`);
+    await expect(page.getByRole('navigation', { name: 'Site', exact: true })).toBeVisible();
+  }
+  await page.addInitScript(() => { window.DecompressionStream = undefined; });
+  await page.goto('/web/');
+  await expect(page.locator('#number')).toBeEnabled();
+  await page.locator('#number').fill('12');
+  await page.locator('#word-filter > summary').click();
+  await page.getByRole('checkbox', { name: 'Common words only', exact: true }).check();
+  await expect(page.locator('#options .word-choice')).toHaveCount(69);
+  expect(requests).toContain('/web/data/db.json?v=5');
+  expect(legacyRequests).toEqual([]);
 });
 
 test('automatic chunking is optional and preserves choices through mode switches and undo', async ({ page, isMobile }) => {
@@ -301,13 +518,10 @@ test('automatic chunking supports long numbers without changing their digits', a
 
 test('unavailable automatic splits explain the problem without silently changing modes', async ({ page }) => {
   await page.addInitScript(() => { window.DecompressionStream = undefined; });
-  await page.route('**/data/db.json', (route) => route.fulfill({
+  await page.route('**/data/db.json*', (route) => route.fulfill({
     json: {
-      version: 4, source: {
-        pairCount: 1, codeCount: 1, maxCodeLength: 5,
-        commonWords: { minimumZipf: 3.5, countsByCode: { '12345': 1 } }
-      },
-      byCode: { '12345': [['example', 'n']] }
+      version: 5, source: { pairCount: 1, codeCount: 1, maxCodeLength: 5 },
+      byCode: { '12345': [['example', 'n', 350]] }
     }
   }));
   await page.reload();
@@ -487,7 +701,7 @@ test('native gzip is the only dictionary request and is below the size budget', 
   expect(requests.filter((path) => path.includes('/data/'))).toEqual(['/web/data/db.txt.gz']);
   const response = await page.request.get('/web/data/db.txt.gz');
   expect(response.headers()['content-encoding']).toBeUndefined();
-  expect((await response.body()).length).toBeLessThan(540_000);
+  expect((await response.body()).length).toBeLessThan(650_000);
 });
 
 test('browsers without a native decompressor use JSON and can complete a thread', async ({ page }) => {
@@ -508,7 +722,7 @@ test('browsers without a native decompressor use JSON and can complete a thread'
 test('already-decoded responses and HTTP Content-Encoding gzip are both accepted', async ({ page }) => {
   const packed = await readFile(new URL('../web/data/db.txt.gz', import.meta.url));
   for (const decoded of [true, false]) {
-    await page.route('**/data/db.txt.gz', (route) => route.fulfill({
+    await page.route('**/data/db.txt.gz*', (route) => route.fulfill({
       contentType: 'text/plain', headers: decoded ? {} : { 'Content-Encoding': 'gzip' },
       body: decoded ? gunzipSync(packed) : packed
     }));
@@ -522,7 +736,7 @@ test('already-decoded responses and HTTP Content-Encoding gzip are both accepted
 test('loading and download failures stay visible without retrying the large asset', async ({ page }) => {
   let resume;
   const wait = new Promise((resolve) => { resume = resolve; });
-  await page.route('**/data/db.txt.gz', async (route) => { await wait; await route.abort(); });
+  await page.route('**/data/db.txt.gz*', async (route) => { await wait; await route.abort(); });
   await page.reload();
   await expect(page.locator('#number')).toBeDisabled();
   await expect(page.locator('#library-status')).toHaveText('Opening the word library...');
@@ -531,7 +745,7 @@ test('loading and download failures stay visible without retrying the large asse
   const requests = [];
   page.on('request', (request) => requests.push(new URL(request.url()).pathname));
   for (const body of ['{', '{}', Buffer.from([0x1f, 0x8b, 0x08, 0x00])]) {
-    await page.route('**/data/db.txt.gz', (route) => route.fulfill({ body }));
+    await page.route('**/data/db.txt.gz*', (route) => route.fulfill({ body }));
     await page.reload();
     await expect(page.locator('#number')).toBeDisabled();
     await expect(page.locator('#library-error')).toBeVisible();
@@ -540,14 +754,11 @@ test('loading and download failures stay visible without retrying the large asse
 });
 
 test('empty dictionaries explain missing prefixes without invented suggestions', async ({ page }) => {
-  await page.route('**/data/db.txt.gz', (route) => route.fulfill({
+  await page.route('**/data/db.txt.gz*', (route) => route.fulfill({
     body: JSON.stringify({
-      format: 'digitloom-columns', version: 1, dictionaryVersion: 4,
-      source: {
-        pairCount: 0, codeCount: 0, maxCodeLength: 0,
-        commonWords: { minimumZipf: 3.5, countsByCode: {} }
-      }, codes: [], counts: []
-    }) + '\n\n'
+      format: 'digitloom-columns', version: 2, dictionaryVersion: 5,
+      source: { pairCount: 0, codeCount: 0, maxCodeLength: 0 }, codes: [], counts: []
+    }) + '\n\n\n'
   }));
   await page.reload();
   await expect(page.locator('#number')).toBeEnabled();

@@ -1,3 +1,20 @@
+export const DICTIONARY_VERSION = 5;
+export const DEFAULT_MINIMUM_ZIPF = 3.5;
+
+function validateCutoff(minimumZipf) {
+  if (typeof minimumZipf !== 'number' || !Number.isFinite(minimumZipf) || minimumZipf < 0 || minimumZipf > 9) {
+    throw new RangeError('The Zipf cutoff must be a number from 0 to 9.');
+  }
+}
+
+export function isCommonWord(frequency, minimumZipf = DEFAULT_MINIMUM_ZIPF) {
+  if (!Number.isSafeInteger(frequency) || frequency < 0 || frequency > 900) {
+    throw new RangeError('Word frequency must be Zipf hundredths from 0 to 900.');
+  }
+  validateCutoff(minimumZipf);
+  return frequency > 0 && frequency / 100 >= minimumZipf;
+}
+
 export function normalizeInput(value) {
   if (typeof value !== 'string' || /[^0-9 ]/.test(value)) {
     return { ok: false, digits: null, error: 'Use digits and spaces only.' };
@@ -22,14 +39,16 @@ export function formatNumber(selected, remaining) {
   return chunks.join(' ');
 }
 
-export function planChunks(db, digits) {
+export function planChunks(db, digits, minimumZipf) {
+  if (minimumZipf !== undefined) validateCutoff(minimumZipf);
   const lengths = new Uint8Array(digits.length);
   const singleDigitTails = new Uint8Array(digits.length + 1).fill(2);
   singleDigitTails[digits.length] = 0;
   for (let offset = digits.length - 1; offset >= 0; offset -= 1) {
     const minimum = offset === digits.length - 1 ? 1 : 2;
     for (let length = Math.min(4, digits.length - offset); length >= minimum; length -= 1) {
-      if (!db.byCode[digits.slice(offset, offset + length)]?.length) continue;
+      const entries = db.byCode[digits.slice(offset, offset + length)];
+      if (!entries?.length || (minimumZipf !== undefined && !isCommonWord(entries[0][2], minimumZipf))) continue;
       const tails = singleDigitTails[offset + length] + Number(length === 1);
       // Prefer a complete split without a single-digit tail, then longer chunks.
       if (tails < singleDigitTails[offset]) {
@@ -48,34 +67,30 @@ export function planChunks(db, digits) {
 
 export function validateDatabase(db) {
   const invalid = () => { throw new Error('Invalid local word database; rebuild it with npm run build:data.'); };
-  const commonWords = db?.source?.commonWords;
-  if (db?.version !== 4 || !db.byCode ||
+  if (db?.version !== DICTIONARY_VERSION || !db.byCode ||
       typeof db.byCode !== 'object' || Array.isArray(db.byCode) ||
       !Number.isSafeInteger(db.source?.maxCodeLength) || db.source.maxCodeLength < 0 ||
       !Number.isSafeInteger(db.source.pairCount) || db.source.pairCount < 0 ||
-      !Number.isSafeInteger(db.source.codeCount) || db.source.codeCount < 0 ||
-      commonWords?.minimumZipf !== 3.5 || !commonWords.countsByCode ||
-      typeof commonWords.countsByCode !== 'object' || Array.isArray(commonWords.countsByCode)) invalid();
+      !Number.isSafeInteger(db.source.codeCount) || db.source.codeCount < 0) invalid();
   let pairCount = 0;
   let maxCodeLength = 0;
   for (const [code, entries] of Object.entries(db.byCode)) {
     if (!/^[0-9]+$/.test(code) || !Array.isArray(entries) || !entries.length) invalid();
     const seen = new Set();
+    let previousFrequency = 900;
     maxCodeLength = Math.max(maxCodeLength, code.length);
     for (const entry of entries) {
-      if (!Array.isArray(entry) || entry.length !== 2 ||
+      if (!Array.isArray(entry) || entry.length !== 3 ||
           typeof entry[0] !== 'string' || !entry[0] || seen.has(entry[0]) ||
-          typeof entry[1] !== 'string' || !/^n?v?a?$/.test(entry[1])) invalid();
+          typeof entry[1] !== 'string' || !/^n?v?a?$/.test(entry[1]) ||
+          !Number.isSafeInteger(entry[2]) || entry[2] < 0 || entry[2] > previousFrequency) invalid();
       seen.add(entry[0]);
+      previousFrequency = entry[2];
       pairCount += 1;
     }
   }
   if (pairCount !== db.source.pairCount || maxCodeLength !== db.source.maxCodeLength ||
       Object.keys(db.byCode).length !== db.source.codeCount) invalid();
-  for (const [code, count] of Object.entries(commonWords.countsByCode)) {
-    if (!Object.hasOwn(db.byCode, code) || !Number.isSafeInteger(count) ||
-        count < 1 || count > db.byCode[code].length) invalid();
-  }
   return db;
 }
 
@@ -84,8 +99,8 @@ export function getCandidates(db, digits) {
   const firstLength = digits.length === 1 ? 1 : 2;
   for (let length = firstLength; length <= Math.min(db.source.maxCodeLength, digits.length); length += 1) {
     const code = digits.slice(0, length);
-    for (const [word, pos] of db.byCode[code] ?? []) {
-      candidates.push([word, code, pos]);
+    for (const [word, pos, frequency] of db.byCode[code] ?? []) {
+      candidates.push([word, code, pos, frequency]);
     }
   }
   return candidates;

@@ -1,573 +1,573 @@
 {
-  "inputSha256": "06b920f1204276179f33db60fb2d3b55776518db569054ac2ee8efda1a7c9287",
-  "baselineBytes": 2431050,
+  "inputSha256": "9d5020bb2f01532241848c06ff57a954467cbb6a370941ce6bc7d6074675d461",
+  "baselineBytes": 2820635,
   "environment": {
     "node": "v24.4.1",
     "platform": "darwin",
     "arch": "arm64"
   },
-  "methodology": "All representations preserve source metadata, every word/code/POS pair, and within-code rank. Median of 7 warm Node decode+validation trials. Compression uses Node zlib. Browser timings are measured separately.",
+  "methodology": "All representations preserve source metadata, every word/code/POS/Zipf record, and within-code rank. Median of 7 warm Node decode+validation trials. Compression uses Node zlib. Browser timings are measured separately.",
   "results": [
     {
       "format": "json",
       "codec": "raw",
-      "bytes": 2431050,
+      "bytes": 2820635,
       "compressionMs": 0,
-      "nodeDecodeValidateMs": 26.6
+      "nodeDecodeValidateMs": 29.7
     },
     {
       "format": "json",
       "codec": "gzip1",
-      "bytes": 787246,
-      "compressionMs": 12,
-      "nodeDecodeValidateMs": 31.4
+      "bytes": 1011709,
+      "compressionMs": 15,
+      "nodeDecodeValidateMs": 31.5
     },
     {
       "format": "json",
       "codec": "gzip6",
-      "bytes": 649932,
-      "compressionMs": 49,
-      "nodeDecodeValidateMs": 33.2
+      "bytes": 845375,
+      "compressionMs": 72,
+      "nodeDecodeValidateMs": 33.5
     },
     {
       "format": "json",
       "codec": "gzip9",
-      "bytes": 645927,
-      "compressionMs": 252,
-      "nodeDecodeValidateMs": 33.4
+      "bytes": 840502,
+      "compressionMs": 335,
+      "nodeDecodeValidateMs": 31.3
     },
     {
       "format": "json",
       "codec": "brotli5",
-      "bytes": 628569,
-      "compressionMs": 37,
-      "nodeDecodeValidateMs": 30
+      "bytes": 814056,
+      "compressionMs": 47,
+      "nodeDecodeValidateMs": 33.7
     },
     {
       "format": "json",
       "codec": "brotli9",
-      "bytes": 617280,
-      "compressionMs": 101,
-      "nodeDecodeValidateMs": 31.7
+      "bytes": 794631,
+      "compressionMs": 151,
+      "nodeDecodeValidateMs": 32.1
     },
     {
       "format": "json",
       "codec": "brotli11",
-      "bytes": 524239,
-      "compressionMs": 2141,
-      "nodeDecodeValidateMs": 30.6
+      "bytes": 679808,
+      "compressionMs": 2569,
+      "nodeDecodeValidateMs": 32
     },
     {
       "format": "flat-json",
       "codec": "raw",
-      "bytes": 2176593,
+      "bytes": 2566178,
       "compressionMs": 0,
-      "nodeDecodeValidateMs": 33.1
+      "nodeDecodeValidateMs": 33
     },
     {
       "format": "flat-json",
       "codec": "gzip1",
-      "bytes": 769566,
-      "compressionMs": 12,
+      "bytes": 992985,
+      "compressionMs": 14,
       "nodeDecodeValidateMs": 39.6
     },
     {
       "format": "flat-json",
       "codec": "gzip6",
-      "bytes": 643801,
-      "compressionMs": 50,
-      "nodeDecodeValidateMs": 37.7
+      "bytes": 839441,
+      "compressionMs": 77,
+      "nodeDecodeValidateMs": 40.1
     },
     {
       "format": "flat-json",
       "codec": "gzip9",
-      "bytes": 638572,
-      "compressionMs": 344,
-      "nodeDecodeValidateMs": 38.7
+      "bytes": 832813,
+      "compressionMs": 285,
+      "nodeDecodeValidateMs": 37.2
     },
     {
       "format": "flat-json",
       "codec": "brotli5",
-      "bytes": 615067,
-      "compressionMs": 34,
-      "nodeDecodeValidateMs": 37.7
-    },
-    {
-      "format": "flat-json",
-      "codec": "brotli9",
-      "bytes": 605508,
-      "compressionMs": 101,
+      "bytes": 801893,
+      "compressionMs": 43,
       "nodeDecodeValidateMs": 38.5
     },
     {
       "format": "flat-json",
+      "codec": "brotli9",
+      "bytes": 779194,
+      "compressionMs": 127,
+      "nodeDecodeValidateMs": 40.1
+    },
+    {
+      "format": "flat-json",
       "codec": "brotli11",
-      "bytes": 516346,
-      "compressionMs": 2131,
-      "nodeDecodeValidateMs": 39.5
+      "bytes": 675171,
+      "compressionMs": 2405,
+      "nodeDecodeValidateMs": 39.3
     },
     {
       "format": "grouped-text",
       "codec": "raw",
-      "bytes": 1543386,
+      "bytes": 1932971,
       "compressionMs": 0,
-      "nodeDecodeValidateMs": 31.3
+      "nodeDecodeValidateMs": 34.6
     },
     {
       "format": "grouped-text",
       "codec": "gzip1",
-      "bytes": 673436,
-      "compressionMs": 11,
-      "nodeDecodeValidateMs": 35.8
+      "bytes": 878988,
+      "compressionMs": 13,
+      "nodeDecodeValidateMs": 40.6
     },
     {
       "format": "grouped-text",
       "codec": "gzip6",
-      "bytes": 601049,
-      "compressionMs": 58,
-      "nodeDecodeValidateMs": 37.8
+      "bytes": 778414,
+      "compressionMs": 75,
+      "nodeDecodeValidateMs": 41.4
     },
     {
       "format": "grouped-text",
       "codec": "gzip9",
-      "bytes": 600990,
-      "compressionMs": 90,
-      "nodeDecodeValidateMs": 36
+      "bytes": 777244,
+      "compressionMs": 109,
+      "nodeDecodeValidateMs": 39.2
     },
     {
       "format": "grouped-text",
       "codec": "brotli5",
-      "bytes": 573042,
-      "compressionMs": 34,
-      "nodeDecodeValidateMs": 33.9
+      "bytes": 740062,
+      "compressionMs": 41,
+      "nodeDecodeValidateMs": 38.6
     },
     {
       "format": "grouped-text",
       "codec": "brotli9",
-      "bytes": 566201,
-      "compressionMs": 68,
-      "nodeDecodeValidateMs": 38.9
+      "bytes": 728128,
+      "compressionMs": 96,
+      "nodeDecodeValidateMs": 40.8
     },
     {
       "format": "grouped-text",
       "codec": "brotli11",
-      "bytes": 493065,
-      "compressionMs": 1491,
-      "nodeDecodeValidateMs": 35.8
+      "bytes": 642606,
+      "compressionMs": 1895,
+      "nodeDecodeValidateMs": 39.2
     },
     {
       "format": "columnar",
       "codec": "raw",
-      "bytes": 1731969,
+      "bytes": 1923733,
       "compressionMs": 0,
-      "nodeDecodeValidateMs": 30.5
+      "nodeDecodeValidateMs": 32.2
     },
     {
       "format": "columnar",
       "codec": "gzip1",
-      "bytes": 678014,
-      "compressionMs": 11,
-      "nodeDecodeValidateMs": 35.4
+      "bytes": 791616,
+      "compressionMs": 12,
+      "nodeDecodeValidateMs": 36.2
     },
     {
       "format": "columnar",
       "codec": "gzip6",
-      "bytes": 592440,
-      "compressionMs": 70,
-      "nodeDecodeValidateMs": 34
+      "bytes": 696731,
+      "compressionMs": 74,
+      "nodeDecodeValidateMs": 36.3
     },
     {
       "format": "columnar",
       "codec": "gzip9",
-      "bytes": 590199,
-      "compressionMs": 272,
+      "bytes": 693309,
+      "compressionMs": 285,
       "nodeDecodeValidateMs": 36.3
     },
     {
       "format": "columnar",
       "codec": "brotli5",
-      "bytes": 563498,
-      "compressionMs": 35,
-      "nodeDecodeValidateMs": 35
-    },
-    {
-      "format": "columnar",
-      "codec": "brotli9",
-      "bytes": 556331,
-      "compressionMs": 84,
-      "nodeDecodeValidateMs": 33.9
-    },
-    {
-      "format": "columnar",
-      "codec": "brotli11",
-      "bytes": 492619,
-      "compressionMs": 1647,
-      "nodeDecodeValidateMs": 35
-    },
-    {
-      "format": "word-table",
-      "codec": "raw",
-      "bytes": 2278211,
-      "compressionMs": 0,
-      "nodeDecodeValidateMs": 63.7
-    },
-    {
-      "format": "word-table",
-      "codec": "gzip1",
-      "bytes": 929668,
-      "compressionMs": 14,
-      "nodeDecodeValidateMs": 64.9
-    },
-    {
-      "format": "word-table",
-      "codec": "gzip6",
-      "bytes": 786084,
-      "compressionMs": 100,
-      "nodeDecodeValidateMs": 70.8
-    },
-    {
-      "format": "word-table",
-      "codec": "gzip9",
-      "bytes": 784756,
-      "compressionMs": 206,
-      "nodeDecodeValidateMs": 66.9
-    },
-    {
-      "format": "word-table",
-      "codec": "brotli5",
-      "bytes": 763033,
-      "compressionMs": 44,
-      "nodeDecodeValidateMs": 67.5
-    },
-    {
-      "format": "word-table",
-      "codec": "brotli9",
-      "bytes": 737943,
-      "compressionMs": 119,
-      "nodeDecodeValidateMs": 65.3
-    },
-    {
-      "format": "word-table",
-      "codec": "brotli11",
-      "bytes": 628148,
-      "compressionMs": 2298,
-      "nodeDecodeValidateMs": 70.8
-    },
-    {
-      "format": "front-coded",
-      "codec": "raw",
-      "bytes": 1890095,
-      "compressionMs": 0,
-      "nodeDecodeValidateMs": 70.4
-    },
-    {
-      "format": "front-coded",
-      "codec": "gzip1",
-      "bytes": 818962,
-      "compressionMs": 13,
-      "nodeDecodeValidateMs": 71.2
-    },
-    {
-      "format": "front-coded",
-      "codec": "gzip6",
-      "bytes": 699984,
-      "compressionMs": 88,
-      "nodeDecodeValidateMs": 72.7
-    },
-    {
-      "format": "front-coded",
-      "codec": "gzip9",
-      "bytes": 694774,
-      "compressionMs": 191,
-      "nodeDecodeValidateMs": 77.2
-    },
-    {
-      "format": "front-coded",
-      "codec": "brotli5",
-      "bytes": 669812,
+      "bytes": 668309,
       "compressionMs": 38,
+      "nodeDecodeValidateMs": 36.1
+    },
+    {
+      "format": "columnar",
+      "codec": "brotli9",
+      "bytes": 659676,
+      "compressionMs": 92,
+      "nodeDecodeValidateMs": 36.4
+    },
+    {
+      "format": "columnar",
+      "codec": "brotli11",
+      "bytes": 595085,
+      "compressionMs": 1875,
+      "nodeDecodeValidateMs": 37.9
+    },
+    {
+      "format": "word-table",
+      "codec": "raw",
+      "bytes": 2662782,
+      "compressionMs": 0,
+      "nodeDecodeValidateMs": 67.6
+    },
+    {
+      "format": "word-table",
+      "codec": "gzip1",
+      "bytes": 1154730,
+      "compressionMs": 17,
+      "nodeDecodeValidateMs": 70.7
+    },
+    {
+      "format": "word-table",
+      "codec": "gzip6",
+      "bytes": 988650,
+      "compressionMs": 108,
+      "nodeDecodeValidateMs": 70.6
+    },
+    {
+      "format": "word-table",
+      "codec": "gzip9",
+      "bytes": 986672,
+      "compressionMs": 190,
+      "nodeDecodeValidateMs": 72.9
+    },
+    {
+      "format": "word-table",
+      "codec": "brotli5",
+      "bytes": 966579,
+      "compressionMs": 55,
+      "nodeDecodeValidateMs": 70.3
+    },
+    {
+      "format": "word-table",
+      "codec": "brotli9",
+      "bytes": 942138,
+      "compressionMs": 160,
+      "nodeDecodeValidateMs": 71.4
+    },
+    {
+      "format": "word-table",
+      "codec": "brotli11",
+      "bytes": 812324,
+      "compressionMs": 2653,
+      "nodeDecodeValidateMs": 74
+    },
+    {
+      "format": "front-coded",
+      "codec": "raw",
+      "bytes": 2274666,
+      "compressionMs": 0,
+      "nodeDecodeValidateMs": 69.9
+    },
+    {
+      "format": "front-coded",
+      "codec": "gzip1",
+      "bytes": 1038306,
+      "compressionMs": 15,
+      "nodeDecodeValidateMs": 79.8
+    },
+    {
+      "format": "front-coded",
+      "codec": "gzip6",
+      "bytes": 890902,
+      "compressionMs": 111,
+      "nodeDecodeValidateMs": 75.6
+    },
+    {
+      "format": "front-coded",
+      "codec": "gzip9",
+      "bytes": 884969,
+      "compressionMs": 180,
+      "nodeDecodeValidateMs": 77.1
+    },
+    {
+      "format": "front-coded",
+      "codec": "brotli5",
+      "bytes": 853806,
+      "compressionMs": 49,
+      "nodeDecodeValidateMs": 74.7
+    },
+    {
+      "format": "front-coded",
+      "codec": "brotli9",
+      "bytes": 829167,
+      "compressionMs": 151,
       "nodeDecodeValidateMs": 78.4
     },
     {
       "format": "front-coded",
-      "codec": "brotli9",
-      "bytes": 655002,
-      "compressionMs": 118,
-      "nodeDecodeValidateMs": 73.7
-    },
-    {
-      "format": "front-coded",
       "codec": "brotli11",
-      "bytes": 587204,
-      "compressionMs": 2216,
-      "nodeDecodeValidateMs": 70.3
+      "bytes": 756320,
+      "compressionMs": 2604,
+      "nodeDecodeValidateMs": 77.2
     },
     {
       "format": "lexical-json",
       "codec": "raw",
-      "bytes": 2431049,
+      "bytes": 2820634,
       "compressionMs": 0,
-      "nodeDecodeValidateMs": 30.2
+      "nodeDecodeValidateMs": 31.5
     },
     {
       "format": "lexical-json",
       "codec": "gzip1",
-      "bytes": 747762,
-      "compressionMs": 12,
-      "nodeDecodeValidateMs": 37.5
+      "bytes": 967582,
+      "compressionMs": 14,
+      "nodeDecodeValidateMs": 36.3
     },
     {
       "format": "lexical-json",
       "codec": "gzip6",
-      "bytes": 605689,
-      "compressionMs": 54,
-      "nodeDecodeValidateMs": 32.8
-    },
-    {
-      "format": "lexical-json",
-      "codec": "gzip9",
-      "bytes": 600012,
-      "compressionMs": 255,
-      "nodeDecodeValidateMs": 35.4
-    },
-    {
-      "format": "lexical-json",
-      "codec": "brotli5",
-      "bytes": 600035,
-      "compressionMs": 35,
-      "nodeDecodeValidateMs": 34.1
-    },
-    {
-      "format": "lexical-json",
-      "codec": "brotli9",
-      "bytes": 593396,
-      "compressionMs": 103,
-      "nodeDecodeValidateMs": 33.3
-    },
-    {
-      "format": "lexical-json",
-      "codec": "brotli11",
-      "bytes": 504440,
-      "compressionMs": 2362,
-      "nodeDecodeValidateMs": 33
-    },
-    {
-      "format": "lexical-text",
-      "codec": "raw",
-      "bytes": 1543386,
-      "compressionMs": 0,
-      "nodeDecodeValidateMs": 38.2
-    },
-    {
-      "format": "lexical-text",
-      "codec": "gzip1",
-      "bytes": 635127,
-      "compressionMs": 11,
-      "nodeDecodeValidateMs": 39.5
-    },
-    {
-      "format": "lexical-text",
-      "codec": "gzip6",
-      "bytes": 557905,
-      "compressionMs": 62,
-      "nodeDecodeValidateMs": 41.7
-    },
-    {
-      "format": "lexical-text",
-      "codec": "gzip9",
-      "bytes": 557864,
-      "compressionMs": 109,
-      "nodeDecodeValidateMs": 42.3
-    },
-    {
-      "format": "lexical-text",
-      "codec": "brotli5",
-      "bytes": 544223,
-      "compressionMs": 31,
-      "nodeDecodeValidateMs": 38.7
-    },
-    {
-      "format": "lexical-text",
-      "codec": "brotli9",
-      "bytes": 540666,
-      "compressionMs": 69,
-      "nodeDecodeValidateMs": 41.5
-    },
-    {
-      "format": "lexical-text",
-      "codec": "brotli11",
-      "bytes": 473810,
-      "compressionMs": 1715,
-      "nodeDecodeValidateMs": 42.1
-    },
-    {
-      "format": "lexical-columnar",
-      "codec": "raw",
-      "bytes": 1731969,
-      "compressionMs": 0,
-      "nodeDecodeValidateMs": 33.2
-    },
-    {
-      "format": "lexical-columnar",
-      "codec": "gzip1",
-      "bytes": 638498,
-      "compressionMs": 11,
-      "nodeDecodeValidateMs": 37.4
-    },
-    {
-      "format": "lexical-columnar",
-      "codec": "gzip6",
-      "bytes": 544113,
-      "compressionMs": 74,
-      "nodeDecodeValidateMs": 39.1
-    },
-    {
-      "format": "lexical-columnar",
-      "codec": "gzip9",
-      "bytes": 542024,
-      "compressionMs": 384,
-      "nodeDecodeValidateMs": 37.6
-    },
-    {
-      "format": "lexical-columnar",
-      "codec": "brotli5",
-      "bytes": 542327,
-      "compressionMs": 32,
-      "nodeDecodeValidateMs": 39.9
-    },
-    {
-      "format": "lexical-columnar",
-      "codec": "brotli9",
-      "bytes": 538971,
-      "compressionMs": 88,
-      "nodeDecodeValidateMs": 37.8
-    },
-    {
-      "format": "lexical-columnar",
-      "codec": "brotli11",
-      "bytes": 455057,
-      "compressionMs": 1620,
-      "nodeDecodeValidateMs": 39.5
-    },
-    {
-      "format": "columnar-text",
-      "codec": "raw",
-      "bytes": 1604722,
-      "compressionMs": 0,
-      "nodeDecodeValidateMs": 32.6
-    },
-    {
-      "format": "columnar-text",
-      "codec": "gzip1",
-      "bytes": 615667,
-      "compressionMs": 10,
-      "nodeDecodeValidateMs": 37.1
-    },
-    {
-      "format": "columnar-text",
-      "codec": "gzip6",
-      "bytes": 536893,
-      "compressionMs": 69,
-      "nodeDecodeValidateMs": 36.4
-    },
-    {
-      "format": "columnar-text",
-      "codec": "gzip9",
-      "bytes": 535130,
-      "compressionMs": 302,
-      "nodeDecodeValidateMs": 36
-    },
-    {
-      "format": "columnar-text",
-      "codec": "brotli5",
-      "bytes": 532940,
-      "compressionMs": 32,
-      "nodeDecodeValidateMs": 35.8
-    },
-    {
-      "format": "columnar-text",
-      "codec": "brotli9",
-      "bytes": 530137,
+      "bytes": 792187,
       "compressionMs": 76,
-      "nodeDecodeValidateMs": 36.7
+      "nodeDecodeValidateMs": 34.3
+    },
+    {
+      "format": "lexical-json",
+      "codec": "gzip9",
+      "bytes": 785934,
+      "compressionMs": 363,
+      "nodeDecodeValidateMs": 33.8
+    },
+    {
+      "format": "lexical-json",
+      "codec": "brotli5",
+      "bytes": 782678,
+      "compressionMs": 44,
+      "nodeDecodeValidateMs": 32.4
+    },
+    {
+      "format": "lexical-json",
+      "codec": "brotli9",
+      "bytes": 764530,
+      "compressionMs": 158,
+      "nodeDecodeValidateMs": 34
+    },
+    {
+      "format": "lexical-json",
+      "codec": "brotli11",
+      "bytes": 660791,
+      "compressionMs": 2763,
+      "nodeDecodeValidateMs": 37.2
+    },
+    {
+      "format": "lexical-text",
+      "codec": "raw",
+      "bytes": 1932971,
+      "compressionMs": 0,
+      "nodeDecodeValidateMs": 42.5
+    },
+    {
+      "format": "lexical-text",
+      "codec": "gzip1",
+      "bytes": 842023,
+      "compressionMs": 13,
+      "nodeDecodeValidateMs": 44.9
+    },
+    {
+      "format": "lexical-text",
+      "codec": "gzip6",
+      "bytes": 727624,
+      "compressionMs": 85,
+      "nodeDecodeValidateMs": 45.4
+    },
+    {
+      "format": "lexical-text",
+      "codec": "gzip9",
+      "bytes": 726757,
+      "compressionMs": 137,
+      "nodeDecodeValidateMs": 44.8
+    },
+    {
+      "format": "lexical-text",
+      "codec": "brotli5",
+      "bytes": 708810,
+      "compressionMs": 40,
+      "nodeDecodeValidateMs": 45
+    },
+    {
+      "format": "lexical-text",
+      "codec": "brotli9",
+      "bytes": 702128,
+      "compressionMs": 100,
+      "nodeDecodeValidateMs": 43.4
+    },
+    {
+      "format": "lexical-text",
+      "codec": "brotli11",
+      "bytes": 625158,
+      "compressionMs": 2022,
+      "nodeDecodeValidateMs": 45.5
+    },
+    {
+      "format": "lexical-columnar",
+      "codec": "raw",
+      "bytes": 1923733,
+      "compressionMs": 0,
+      "nodeDecodeValidateMs": 35
+    },
+    {
+      "format": "lexical-columnar",
+      "codec": "gzip1",
+      "bytes": 754326,
+      "compressionMs": 13,
+      "nodeDecodeValidateMs": 40
+    },
+    {
+      "format": "lexical-columnar",
+      "codec": "gzip6",
+      "bytes": 651577,
+      "compressionMs": 80,
+      "nodeDecodeValidateMs": 40.1
+    },
+    {
+      "format": "lexical-columnar",
+      "codec": "gzip9",
+      "bytes": 648372,
+      "compressionMs": 399,
+      "nodeDecodeValidateMs": 40.9
+    },
+    {
+      "format": "lexical-columnar",
+      "codec": "brotli5",
+      "bytes": 645523,
+      "compressionMs": 37,
+      "nodeDecodeValidateMs": 40.3
+    },
+    {
+      "format": "lexical-columnar",
+      "codec": "brotli9",
+      "bytes": 641655,
+      "compressionMs": 101,
+      "nodeDecodeValidateMs": 39.4
+    },
+    {
+      "format": "lexical-columnar",
+      "codec": "brotli11",
+      "bytes": 557961,
+      "compressionMs": 1754,
+      "nodeDecodeValidateMs": 40.6
+    },
+    {
+      "format": "columnar-text",
+      "codec": "raw",
+      "bytes": 1796470,
+      "compressionMs": 0,
+      "nodeDecodeValidateMs": 33.8
+    },
+    {
+      "format": "columnar-text",
+      "codec": "gzip1",
+      "bytes": 730940,
+      "compressionMs": 12,
+      "nodeDecodeValidateMs": 39.5
+    },
+    {
+      "format": "columnar-text",
+      "codec": "gzip6",
+      "bytes": 643912,
+      "compressionMs": 74,
+      "nodeDecodeValidateMs": 38.5
+    },
+    {
+      "format": "columnar-text",
+      "codec": "gzip9",
+      "bytes": 641313,
+      "compressionMs": 320,
+      "nodeDecodeValidateMs": 39.8
+    },
+    {
+      "format": "columnar-text",
+      "codec": "brotli5",
+      "bytes": 636373,
+      "compressionMs": 36,
+      "nodeDecodeValidateMs": 38.6
+    },
+    {
+      "format": "columnar-text",
+      "codec": "brotli9",
+      "bytes": 633278,
+      "compressionMs": 82,
+      "nodeDecodeValidateMs": 38.4
     },
     {
       "format": "columnar-text",
       "codec": "brotli11",
-      "bytes": 448148,
-      "compressionMs": 1514,
-      "nodeDecodeValidateMs": 37.3
+      "bytes": 551261,
+      "compressionMs": 1629,
+      "nodeDecodeValidateMs": 39.2
     }
   ],
   "firstDigitShards": {
     "raw": {
       "sizes": [
-        355473,
-        361691,
-        265930,
-        277119,
-        265371,
-        226504,
-        183930,
-        440258,
-        240566,
-        411690
+        347184,
+        355782,
+        238315,
+        254550,
+        241464,
+        196031,
+        144291,
+        449367,
+        210565,
+        416187
       ],
-      "totalBytes": 3028532,
-      "meanInitialBytes": 302853
+      "totalBytes": 2853736,
+      "meanInitialBytes": 285374
     },
     "gzip9": {
       "sizes": [
-        97604,
-        98100,
-        73490,
-        75122,
-        72012,
-        61627,
-        51098,
-        118127,
-        66776,
-        110856
+        103906,
+        105509,
+        70986,
+        75105,
+        71105,
+        57767,
+        43270,
+        132671,
+        63178,
+        123333
       ],
-      "totalBytes": 824812,
-      "meanInitialBytes": 82481
+      "totalBytes": 846830,
+      "meanInitialBytes": 84683
     },
     "brotli11": {
       "sizes": [
-        76461,
-        77298,
-        56711,
-        58175,
-        55840,
-        48075,
-        39447,
-        93706,
-        51427,
-        87858
+        84602,
+        86037,
+        57770,
+        61360,
+        58307,
+        47969,
+        36101,
+        107978,
+        51679,
+        100654
       ],
-      "totalBytes": 644998,
-      "meanInitialBytes": 64500
+      "totalBytes": 692457,
+      "meanInitialBytes": 69246
     }
   },
   "selectedImplementation": {
     "file": "web/data/db.txt.gz",
-    "bytes": 533112,
-    "sha256": "da8413d63823b2e050f08d0c5ce3d9ee356d9d9ca64aed3c6ea18b773016f5bd",
-    "reductionPercent": 78.07,
-    "extraLoaderBytes": 2448,
-    "extraLoaderGzipBytes": 1086,
+    "bytes": 641337,
+    "sha256": "4ec76bffbbc2c8b799a856df99119c9cd0500e870f1aa7c49ab024c1d9275724",
+    "reductionPercent": 77.26,
+    "extraLoaderBytes": 2819,
+    "extraLoaderGzipBytes": 1209,
     "reason": "Compact column text with lexicographically ordered codes and gzip level 9. Preserves all metadata and within-code ranks. Works on plain static hosting with native DecompressionStream(gzip), no decoder dependency. Original JSON is a capability-based fallback, not a retry for failed compressed requests."
   },
   "extended": {
     "json": {
-      "rawBytes": 2431050,
-      "gzip9Bytes": 645927,
-      "lzma9Bytes": 525328
+      "rawBytes": 2820635,
+      "gzip9Bytes": 840502,
+      "lzma9Bytes": 676876
     },
     "messagepack": {
-      "rawBytes": 1684246,
-      "gzip9Bytes": 685241,
-      "lzma9Bytes": 560496
+      "rawBytes": 1902152,
+      "gzip9Bytes": 857764,
+      "lzma9Bytes": 700928
     },
     "note": "Python gzip/lzma and MessagePack via the pinned data-build environment. Neither MessagePack nor LZMA has a built-in browser decoder; no extra decoder was added to the app."
   },
@@ -582,146 +582,146 @@
       {
         "condition": "local",
         "name": "json-raw",
-        "bytes": 2431050,
-        "totalMs": 28,
+        "bytes": 2820635,
+        "totalMs": 28.6,
         "downloadMs": 3.4,
         "decompressMs": 0,
-        "decodeValidateMs": 24.3
+        "decodeValidateMs": 25.2
       },
       {
         "condition": "local",
         "name": "json-http-gzip",
-        "bytes": 645927,
-        "totalMs": 28.7,
-        "downloadMs": 6.4,
+        "bytes": 840502,
+        "totalMs": 31.2,
+        "downloadMs": 7.5,
         "decompressMs": 0,
-        "decodeValidateMs": 22.2
+        "decodeValidateMs": 23.7
       },
       {
         "condition": "local",
         "name": "json-http-brotli",
-        "bytes": 524239,
-        "totalMs": 28.5,
-        "downloadMs": 7.3,
+        "bytes": 679808,
+        "totalMs": 31.4,
+        "downloadMs": 8.7,
         "decompressMs": 0,
-        "decodeValidateMs": 21.3
+        "decodeValidateMs": 22.7
       },
       {
         "condition": "local",
         "name": "json-native-gzip",
-        "bytes": 645927,
-        "totalMs": 26.2,
-        "downloadMs": 1.3,
-        "decompressMs": 3.6,
-        "decodeValidateMs": 21.1
+        "bytes": 840502,
+        "totalMs": 29.1,
+        "downloadMs": 1.6,
+        "decompressMs": 4.4,
+        "decodeValidateMs": 23.1
       },
       {
         "condition": "local",
         "name": "columnar-native-gzip",
-        "bytes": 542024,
-        "totalMs": 33.3,
-        "downloadMs": 1.2,
-        "decompressMs": 2.8,
-        "decodeValidateMs": 29.4
+        "bytes": 648372,
+        "totalMs": 34.8,
+        "downloadMs": 1.3,
+        "decompressMs": 3.2,
+        "decodeValidateMs": 30.3
       },
       {
         "condition": "local",
         "name": "columnar-http-brotli",
-        "bytes": 455057,
-        "totalMs": 34.2,
-        "downloadMs": 6.6,
+        "bytes": 557961,
+        "totalMs": 38.4,
+        "downloadMs": 7.6,
         "decompressMs": 0,
-        "decodeValidateMs": 27.6
+        "decodeValidateMs": 30.7
       },
       {
         "condition": "local",
         "name": "columnar-text-native-gzip",
-        "bytes": 535130,
-        "totalMs": 31.4,
-        "downloadMs": 1.1,
-        "decompressMs": 2.6,
-        "decodeValidateMs": 27.6
+        "bytes": 641313,
+        "totalMs": 35.3,
+        "downloadMs": 1.3,
+        "decompressMs": 3.1,
+        "decodeValidateMs": 30.9
       },
       {
         "condition": "local",
         "name": "production-native-gzip",
-        "bytes": 533112,
-        "totalMs": 35.3,
+        "bytes": 641337,
+        "totalMs": 36.8,
         "downloadMs": 1.2,
-        "decompressMs": 2.6,
-        "decodeValidateMs": 31.5
+        "decompressMs": 3.1,
+        "decodeValidateMs": 32.4
       },
       {
         "condition": "mobile-simulation",
         "name": "json-raw",
-        "bytes": 2431050,
-        "totalMs": 12413.1,
-        "downloadMs": 12318.5,
+        "bytes": 2820635,
+        "totalMs": 14386.8,
+        "downloadMs": 14274.4,
         "decompressMs": 0,
-        "decodeValidateMs": 93.6
+        "decodeValidateMs": 116.4
       },
       {
         "condition": "mobile-simulation",
         "name": "json-http-gzip",
-        "bytes": 645927,
-        "totalMs": 3500.2,
-        "downloadMs": 3392.8,
+        "bytes": 840502,
+        "totalMs": 4487.7,
+        "downloadMs": 4370.5,
         "decompressMs": 0,
-        "decodeValidateMs": 107.7
+        "decodeValidateMs": 119.8
       },
       {
         "condition": "mobile-simulation",
         "name": "json-http-brotli",
-        "bytes": 524239,
-        "totalMs": 2875.1,
-        "downloadMs": 2785.3,
+        "bytes": 679808,
+        "totalMs": 3669.6,
+        "downloadMs": 3566.8,
         "decompressMs": 0,
-        "decodeValidateMs": 94.1
+        "decodeValidateMs": 104.7
       },
       {
         "condition": "mobile-simulation",
         "name": "json-native-gzip",
-        "bytes": 645927,
-        "totalMs": 3497.6,
-        "downloadMs": 3388.2,
-        "decompressMs": 14.4,
-        "decodeValidateMs": 94.2
+        "bytes": 840502,
+        "totalMs": 4473.3,
+        "downloadMs": 4361.9,
+        "decompressMs": 16.8,
+        "decodeValidateMs": 94.5
       },
       {
         "condition": "mobile-simulation",
         "name": "columnar-native-gzip",
-        "bytes": 542024,
-        "totalMs": 3004.1,
-        "downloadMs": 2872.1,
-        "decompressMs": 10.8,
-        "decodeValidateMs": 120.6
+        "bytes": 648372,
+        "totalMs": 3560.7,
+        "downloadMs": 3405.9,
+        "decompressMs": 13.3,
+        "decodeValidateMs": 141.4
       },
       {
         "condition": "mobile-simulation",
         "name": "columnar-http-brotli",
-        "bytes": 455057,
-        "totalMs": 2555.9,
-        "downloadMs": 2436.9,
+        "bytes": 557961,
+        "totalMs": 3084.4,
+        "downloadMs": 2957.3,
         "decompressMs": 0,
-        "decodeValidateMs": 119.4
+        "decodeValidateMs": 127.1
       },
       {
         "condition": "mobile-simulation",
         "name": "columnar-text-native-gzip",
-        "bytes": 535130,
-        "totalMs": 2953.4,
-        "downloadMs": 2827.4,
-        "decompressMs": 10.8,
-        "decodeValidateMs": 116
+        "bytes": 641313,
+        "totalMs": 3506.1,
+        "downloadMs": 3362.9,
+        "decompressMs": 12.9,
+        "decodeValidateMs": 130.9
       },
       {
         "condition": "mobile-simulation",
         "name": "production-native-gzip",
-        "bytes": 533112,
-        "totalMs": 2971.3,
-        "downloadMs": 2823.3,
-        "decompressMs": 10.5,
-        "decodeValidateMs": 135.3
+        "bytes": 641337,
+        "totalMs": 3514.9,
+        "downloadMs": 3363.2,
+        "decompressMs": 12.7,
+        "decodeValidateMs": 134
       }
     ]
   }

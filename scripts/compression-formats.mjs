@@ -13,10 +13,12 @@ function safeText(value) {
 function rowsByWord(db) {
   const rows = new Map();
   for (const [code, entries] of Object.entries(db.byCode)) {
-    entries.forEach(([word, pos], rank) => {
-      if (!rows.has(word)) rows.set(word, { pos, codes: [] });
+    entries.forEach(([word, pos, frequency], rank) => {
+      if (!rows.has(word)) rows.set(word, { pos, frequency, codes: [] });
       const row = rows.get(word);
-      if (row.pos !== pos) throw new Error('Word-table experiment requires consistent POS tags.');
+      if (row.pos !== pos || row.frequency !== frequency) {
+        throw new Error('Word-table experiment requires consistent POS tags and frequencies.');
+      }
       row.codes.push(`${code}:${rank}`);
     });
   }
@@ -31,7 +33,8 @@ function decodeColumns(packed) {
   packed.codes.forEach((code, group) => {
     byCode[code] = [];
     for (let count = 0; count < packed.counts[group]; count += 1) {
-      byCode[code].push([words[index], flags[Number(packed.flags[index])]]);
+      byCode[code].push([words[index], flags[Number(packed.flags[index])],
+        Number.parseInt(packed.frequencies.slice(index * 2, index * 2 + 2), 36)]);
       index += 1;
     }
   });
@@ -53,7 +56,7 @@ export const formats = {
       for (const code of Object.keys(db.byCode)) {
         const values = db.byCode[code];
         db.byCode[code] = [];
-        for (let i = 0; i < values.length; i += 2) db.byCode[code].push(values.slice(i, i + 2));
+        for (let i = 0; i < values.length; i += 3) db.byCode[code].push(values.slice(i, i + 3));
       }
       return db;
     }
@@ -69,7 +72,7 @@ export const formats = {
       for (const line of lines) {
         const [code, ...values] = line.split('\t');
         const entries = [];
-        for (let i = 0; i < values.length; i += 2) entries.push(values.slice(i, i + 2));
+        for (let i = 0; i < values.length; i += 3) entries.push([values[i], values[i + 1], Number(values[i + 2])]);
         db.byCode[code] = entries;
       }
       return db;
@@ -85,7 +88,8 @@ export const formats = {
         counts: groups.map(([, entries]) => entries.length),
         words: words.map(([word]) => safeText(word)).join('\n'),
         flags: words.map(([, pos]) => String((pos.includes('n') ? 1 : 0) |
-          (pos.includes('v') ? 2 : 0) | (pos.includes('a') ? 4 : 0))).join('')
+          (pos.includes('v') ? 2 : 0) | (pos.includes('a') ? 4 : 0))).join(''),
+        frequencies: words.map(([, , frequency]) => frequency.toString(36).padStart(2, '0')).join('')
       }));
     },
     decode: (bytes) => decodeColumns(JSON.parse(decoder.decode(bytes)))
@@ -93,16 +97,16 @@ export const formats = {
   'word-table': {
     encode: (db) => encoder.encode([
       header(db),
-      ...rowsByWord(db).map(([word, row]) => [safeText(word), row.pos, ...row.codes].join('\t'))
+      ...rowsByWord(db).map(([word, row]) => [safeText(word), row.pos, row.frequency, ...row.codes].join('\t'))
     ].join('\n')),
     decode: (bytes) => {
       const [meta, ...lines] = decoder.decode(bytes).split('\n');
       const byCode = {};
       for (const line of lines) {
-        const [word, pos, ...codes] = line.split('\t');
+        const [word, pos, frequency, ...codes] = line.split('\t');
         for (const value of codes) {
           const [code, rank] = value.split(':');
-          (byCode[code] ??= [])[Number(rank)] = [word, pos];
+          (byCode[code] ??= [])[Number(rank)] = [word, pos, Number(frequency)];
         }
       }
       return { ...JSON.parse(meta), byCode };
@@ -114,7 +118,7 @@ export const formats = {
       const lines = rowsByWord(db).map(([word, row]) => {
         let prefix = 0;
         while (prefix < previous.length && prefix < word.length && word[prefix] === previous[prefix]) prefix += 1;
-        const result = [prefix, safeText(word.slice(prefix)), row.pos, ...row.codes].join('\t');
+        const result = [prefix, safeText(word.slice(prefix)), row.pos, row.frequency, ...row.codes].join('\t');
         previous = word;
         return result;
       });
@@ -125,12 +129,12 @@ export const formats = {
       const byCode = {};
       let previous = '';
       for (const line of lines) {
-        const [prefix, suffix, pos, ...codes] = line.split('\t');
+        const [prefix, suffix, pos, frequency, ...codes] = line.split('\t');
         const word = previous.slice(0, Number(prefix)) + suffix;
         previous = word;
         for (const value of codes) {
           const [code, rank] = value.split(':');
-          (byCode[code] ??= [])[Number(rank)] = [word, pos];
+          (byCode[code] ??= [])[Number(rank)] = [word, pos, Number(frequency)];
         }
       }
       return { ...JSON.parse(meta), byCode };
@@ -162,23 +166,26 @@ formats['lexical-columnar'] = {
     packed.words = entries.map(([word]) => safeText(word)).join('\n');
     packed.flags = entries.map(([, pos]) => String((pos.includes('n') ? 1 : 0) |
       (pos.includes('v') ? 2 : 0) | (pos.includes('a') ? 4 : 0))).join('');
+    packed.frequencies = entries.map(([, , frequency]) => frequency.toString(36).padStart(2, '0')).join('');
     return encoder.encode(JSON.stringify(packed));
   },
   decode: formats.columnar.decode
 };
 formats['columnar-text'] = {
   encode: (db) => {
-    const { words, flags, ...meta } = JSON.parse(decoder.decode(formats['lexical-columnar'].encode(db)));
-    return encoder.encode([JSON.stringify(meta), flags, words].join('\n'));
+    const { words, flags, frequencies, ...meta } = JSON.parse(decoder.decode(formats['lexical-columnar'].encode(db)));
+    return encoder.encode([JSON.stringify(meta), flags, frequencies, words].join('\n'));
   },
   decode: (bytes) => {
     const text = decoder.decode(bytes);
     const first = text.indexOf('\n');
     const second = text.indexOf('\n', first + 1);
+    const third = text.indexOf('\n', second + 1);
     return decodeColumns({
       ...JSON.parse(text.slice(0, first)),
       flags: text.slice(first + 1, second),
-      words: text.slice(second + 1)
+      frequencies: text.slice(second + 1, third),
+      words: text.slice(third + 1)
     });
   }
 };
