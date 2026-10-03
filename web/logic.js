@@ -48,11 +48,14 @@ export function planChunks(db, digits) {
 
 export function validateDatabase(db) {
   const invalid = () => { throw new Error('Invalid local word database; rebuild it with npm run build:data.'); };
-  if (db?.version !== 3 || !db.byCode ||
+  const commonWords = db?.source?.commonWords;
+  if (db?.version !== 4 || !db.byCode ||
       typeof db.byCode !== 'object' || Array.isArray(db.byCode) ||
       !Number.isSafeInteger(db.source?.maxCodeLength) || db.source.maxCodeLength < 0 ||
       !Number.isSafeInteger(db.source.pairCount) || db.source.pairCount < 0 ||
-      !Number.isSafeInteger(db.source.codeCount) || db.source.codeCount < 0) invalid();
+      !Number.isSafeInteger(db.source.codeCount) || db.source.codeCount < 0 ||
+      commonWords?.minimumZipf !== 3.5 || !commonWords.countsByCode ||
+      typeof commonWords.countsByCode !== 'object' || Array.isArray(commonWords.countsByCode)) invalid();
   let pairCount = 0;
   let maxCodeLength = 0;
   for (const [code, entries] of Object.entries(db.byCode)) {
@@ -69,6 +72,10 @@ export function validateDatabase(db) {
   }
   if (pairCount !== db.source.pairCount || maxCodeLength !== db.source.maxCodeLength ||
       Object.keys(db.byCode).length !== db.source.codeCount) invalid();
+  for (const [code, count] of Object.entries(commonWords.countsByCode)) {
+    if (!Object.hasOwn(db.byCode, code) || !Number.isSafeInteger(count) ||
+        count < 1 || count > db.byCode[code].length) invalid();
+  }
   return db;
 }
 

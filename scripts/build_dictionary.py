@@ -15,6 +15,7 @@ CACHE = ROOT / ".cache" / "word-data"
 SOURCES = ROOT / "scripts" / "dictionary-sources.json"
 OUTPUT = ROOT / "web" / "data" / "db.json"
 PACKED_OUTPUT = ROOT / "web" / "data" / "db.txt.gz"
+MIN_COMMON_ZIPF = 3.5
 
 PHONEMES = {
     phone: str(digit)
@@ -113,13 +114,19 @@ def part_of_speech(word, lemmas, exceptions):
 
 def build_database(pronunciations, entry_count, ranks, lemmas, exceptions, sources):
     by_code = defaultdict(list)
+    common_counts = Counter()
+    # A wordfreq bin rank is the negative centibel frequency: Zipf = 9 - rank / 100.
+    maximum_common_rank = round((9 - MIN_COMMON_ZIPF) * 100)
     words = sorted(pronunciations, key=lambda word: (ranks.get(word, float("inf")), word))
     skipped = []
     for word in words:
         flags = part_of_speech(word, lemmas, exceptions)
+        common = ranks.get(word, float("inf")) <= maximum_common_rank
         for code in sorted(pronunciations[word]):
             if code:
                 by_code[code].append([word, flags])
+                if common:
+                    common_counts[code] += 1
             else:
                 skipped.append(word)
     by_code = dict(sorted(by_code.items(), key=lambda item: (len(item[0]), item[0])))
@@ -129,7 +136,7 @@ def build_database(pronunciations, entry_count, ranks, lemmas, exceptions, sourc
     for code, entries in by_code.items():
         pairs_by_length[len(code)] += len(entries)
     return {
-        "version": 3,
+        "version": 4,
         "source": {
             "name": "DigitLoom dictionary: CMUdict, wordfreq, and WordNet",
             "datasets": sources,
@@ -142,6 +149,10 @@ def build_database(pronunciations, entry_count, ranks, lemmas, exceptions, sourc
             "codeCount": len(by_code),
             "maxCodeLength": max(map(len, by_code)),
             "pairsByLength": dict(sorted(pairs_by_length.items())),
+            "commonWords": {
+                "minimumZipf": MIN_COMMON_ZIPF,
+                "countsByCode": dict(sorted(common_counts.items())),
+            },
             "zeroDigitWords": sorted(set(skipped)),
             "phonemeDigits": PHONEMES,
             "ignoredPhonemes": sorted(IGNORED),

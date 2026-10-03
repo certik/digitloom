@@ -141,15 +141,15 @@ test('length groups, frequency recommendations, plain grammar labels and exact c
   const dictionary = JSON.parse(await readFile(new URL('../web/data/db.json', import.meta.url)));
   await page.locator('#number').fill('1234');
   await expect(page.locator('.group-heading h3')).toHaveText(['4-digit words', '3-digit words', '2-digit words']);
-  for (const [length, count] of [[4, 5], [3, 17], [2, 440]]) {
+  for (const [length, count, commonCount] of [[4, 5, 0], [3, 17, 2], [2, 440, 69]]) {
     const group = page.getByRole('region', { name: `${length}-digit words`, exact: true });
     await expect(group.getByRole('button')).toHaveCount(count);
     expect(await group.locator('button').evaluateAll((buttons) => buttons.map((b) => b.dataset.code.length)))
       .toEqual(Array(count).fill(length));
     const rankedWords = dictionary.byCode['1234'.slice(0, length)].map(([word]) => word);
     await expect(group.locator('.word-spelling')).toHaveText(rankedWords);
-    await expect(group.locator('.recommended .word-spelling')).toHaveText(rankedWords.slice(0, 5));
-    await expect(group.locator('.word-recommendation')).toHaveText(Array(Math.min(5, count)).fill('Recommended'));
+    await expect(group.locator('.recommended .word-spelling')).toHaveText(rankedWords.slice(0, commonCount));
+    await expect(group.locator('.word-recommendation')).toHaveText(Array(commonCount).fill('Recommended'));
     for (const label of await group.locator('.word-recommendation').all()) await expect(label).toBeHidden();
   }
   const common = page.getByRole('region', { name: '2-digit words', exact: true }).getByRole('button');
@@ -157,7 +157,7 @@ test('length groups, frequency recommendations, plain grammar labels and exact c
   await expect(common.nth(1).locator('.word-spelling')).toHaveText('than');
   await expect(common.nth(2).locator('.word-spelling')).toHaveText('then');
   for (const [word, label, recommended] of [
-    ['then', 'noun, adjective', true], ['doing', 'verb', false], ['down', 'noun, verb, adjective', true]
+    ['then', 'noun, adjective', true], ['doing', 'verb', true], ['down', 'noun, verb, adjective', true]
   ]) {
     await expect(choose(page, word, '12').locator('.word-grammar')).toHaveText(label);
     await expect(choose(page, word, '12')).toHaveAccessibleDescription(`${label}${recommended ? ' Recommended' : ''}`);
@@ -166,7 +166,7 @@ test('length groups, frequency recommendations, plain grammar labels and exact c
   await expect(choose(page, "don't", '12').locator('.word-grammar')).toHaveCount(0);
   await expect(choose(page, "don't", '12')).toHaveAccessibleDescription('Recommended');
   const background = (button) => button.evaluate((element) => getComputedStyle(element).backgroundColor);
-  expect(await background(common.nth(0))).not.toBe(await background(common.nth(5)));
+  expect(await background(common.nth(0))).not.toBe(await background(common.nth(69)));
   await expect(page.locator('#options sup')).toHaveCount(0);
   const typography = await page.locator('.word-spelling').evaluateAll((words) => words.map((word) => {
     const style = getComputedStyle(word);
@@ -180,6 +180,20 @@ test('length groups, frequency recommendations, plain grammar labels and exact c
   await expect(page.locator('.group-heading h3')).toHaveText(['1-digit words']);
   await page.getByRole('region', { name: '1-digit words' }).getByRole('button').first().click();
   await expect(page.locator('#step-title')).toHaveText('Your number is encoded.');
+});
+
+test('green highlights follow the frequency threshold with no cap or minimum', async ({ page }) => {
+  for (const [code, count] of [['32', 29], ['77', 14], ['08', 9], ['626', 1], ['3277', 0]]) {
+    await page.locator('#number').fill(code);
+    const group = page.getByRole('region', { name: `${code.length}-digit words`, exact: true });
+    await expect(group.locator('.recommended')).toHaveCount(count);
+    const highlighted = await group.getByRole('button').evaluateAll((buttons) => buttons
+      .map((button, index) => button.classList.contains('recommended') ? index : -1).filter((index) => index >= 0));
+    expect(highlighted).toEqual(Array.from({ length: count }, (_, index) => index));
+    await page.getByRole('checkbox', { name: 'Auto split', exact: true }).check();
+    await expect(group.locator('.recommended')).toHaveCount(count);
+    await page.getByRole('checkbox', { name: 'Auto split', exact: true }).uncheck();
+  }
 });
 
 test('automatic chunking is optional and preserves choices through mode switches and undo', async ({ page, isMobile }) => {
@@ -289,7 +303,10 @@ test('unavailable automatic splits explain the problem without silently changing
   await page.addInitScript(() => { window.DecompressionStream = undefined; });
   await page.route('**/data/db.json', (route) => route.fulfill({
     json: {
-      version: 3, source: { pairCount: 1, codeCount: 1, maxCodeLength: 5 },
+      version: 4, source: {
+        pairCount: 1, codeCount: 1, maxCodeLength: 5,
+        commonWords: { minimumZipf: 3.5, countsByCode: { '12345': 1 } }
+      },
       byCode: { '12345': [['example', 'n']] }
     }
   }));
@@ -461,7 +478,7 @@ test('native gzip is the only dictionary request and is below the size budget', 
   expect(requests.filter((path) => path.includes('/data/'))).toEqual(['/web/data/db.txt.gz']);
   const response = await page.request.get('/web/data/db.txt.gz');
   expect(response.headers()['content-encoding']).toBeUndefined();
-  expect((await response.body()).length).toBeLessThan(530_000);
+  expect((await response.body()).length).toBeLessThan(540_000);
 });
 
 test('browsers without a native decompressor use JSON and can complete a thread', async ({ page }) => {
@@ -472,6 +489,8 @@ test('browsers without a native decompressor use JSON and can complete a thread'
   await expect(page.locator('#number')).toBeEnabled();
   expect(requests.filter((path) => path.includes('/data/'))).toEqual(['/web/data/db.json']);
   await page.locator('#number').fill('3277');
+  await expect(choose(page, 'moon', '32')).toHaveClass('word-choice recommended');
+  await expect(choose(page, 'menchaca', '3277')).toHaveClass('word-choice');
   await choose(page, 'moon', '32').click();
   await choose(page, 'cake', '77').click();
   await expect(page.locator('#step-title')).toHaveText('Your number is encoded.');
@@ -514,8 +533,11 @@ test('loading and download failures stay visible without retrying the large asse
 test('empty dictionaries explain missing prefixes without invented suggestions', async ({ page }) => {
   await page.route('**/data/db.txt.gz', (route) => route.fulfill({
     body: JSON.stringify({
-      format: 'digitloom-columns', version: 1, dictionaryVersion: 3,
-      source: { pairCount: 0, codeCount: 0, maxCodeLength: 0 }, codes: [], counts: []
+      format: 'digitloom-columns', version: 1, dictionaryVersion: 4,
+      source: {
+        pairCount: 0, codeCount: 0, maxCodeLength: 0,
+        commonWords: { minimumZipf: 3.5, countsByCode: {} }
+      }, codes: [], counts: []
     }) + '\n\n'
   }));
   await page.reload();

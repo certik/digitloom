@@ -129,6 +129,7 @@ test('long and zero-prefixed remainders use available prefix queries', () => {
 });
 
 test('generated independent dictionary has full pinned-source counts and provenance', async () => {
+  assert.equal(db.version, 4);
   assert.equal(db.source.pronunciationCount, 135166);
   assert.equal(db.source.dictionaryWordCount, 126052);
   assert.equal(db.source.wordCount, 125854);
@@ -142,6 +143,22 @@ test('generated independent dictionary has full pinned-source counts and provena
   assert.equal(db.source.license, 'CC-BY-SA-4.0');
   assert.equal(validateDatabase(db), db);
   assert.ok((await stat(new URL('../web/data/db.json', import.meta.url))).size < 3_000_000);
+});
+
+test('common-word metadata records every qualifying word without a fixed quota', () => {
+  const { minimumZipf, countsByCode } = db.source.commonWords;
+  assert.equal(minimumZipf, 3.5);
+  for (const [code, count] of [['12', 69], ['32', 29], ['77', 14], ['08', 9], ['626', 1], ['3277', 0]]) {
+    assert.equal(countsByCode[code] ?? 0, count, code);
+  }
+  assert.equal(Object.keys(countsByCode).length, 6352);
+  assert.equal(Object.values(countsByCode).reduce((sum, count) => sum + count, 0), 14934);
+  const commonWords = new Set(Object.entries(countsByCode)
+    .flatMap(([code, count]) => db.byCode[code].slice(0, count).map(([word]) => word)));
+  assert.equal(commonWords.size, 14616);
+  for (const word of ['moon', 'cake', 'sofa', 'mango', 'cocoa']) assert.ok(commonWords.has(word), word);
+  assert.ok(!commonWords.has('murmur'));
+  assert.ok(!commonWords.has('menchaca'));
 });
 
 test('every exact-code word is reachable, with no duplicates or unrelated suggestions', () => {
@@ -172,7 +189,7 @@ test('long codes and alternate pronunciations are available without spelling gue
 });
 
 test('invalid database shapes fail explicitly instead of enabling a broken app', () => {
-  for (const invalid of [null, {}, { ...db, version: 1 },
+  for (const invalid of [null, {}, { ...db, version: 1 }, { ...db, version: 3 },
     { ...db, byCode: { '0': [['word', 'invalid']] } },
     { ...db, byCode: { '0': [['word', 'n'], ['word', 'v']] } },
     { ...db, byCode: { '0': [['word', 0]] } },
@@ -180,5 +197,19 @@ test('invalid database shapes fail explicitly instead of enabling a broken app',
     { ...db, byCode: { '': [['word', 'n']] } },
     { ...db, source: { ...db.source, maxCodeLength: 5 } }]) {
     assert.throws(() => validateDatabase(invalid), /Invalid local word database/);
+  }
+});
+
+test('missing or corrupt common-word metadata fails instead of guessing highlights', () => {
+  const commonWords = db.source.commonWords;
+  for (const invalid of [
+    undefined, null, {}, { ...commonWords, minimumZipf: 4 },
+    ...[undefined, null, [], { unknown: 1 }].map((countsByCode) => ({ ...commonWords, countsByCode })),
+    ...[0, -1, 0.5, '1', true, db.byCode['00'].length + 1, Number.MAX_SAFE_INTEGER + 1].map((count) => ({
+      ...commonWords, countsByCode: { ...commonWords.countsByCode, '00': count }
+    }))
+  ]) {
+    assert.throws(() => validateDatabase({ ...db, source: { ...db.source, commonWords: invalid } }),
+      /Invalid local word database/);
   }
 });

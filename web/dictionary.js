@@ -6,7 +6,7 @@ export function unpackDictionary(text) {
   const second = text.indexOf('\n', first + 1);
   if (first < 0 || second < 0) invalid();
   const header = JSON.parse(text.slice(0, first));
-  if (header?.format !== 'digitloom-columns' || header.version !== 1 || header.dictionaryVersion !== 3 ||
+  if (header?.format !== 'digitloom-columns' || header.version !== 1 || header.dictionaryVersion !== 4 ||
       !Array.isArray(header.codes) || !Array.isArray(header.counts) ||
       header.codes.length !== header.counts.length) invalid();
   const flags = text.slice(first + 1, second);

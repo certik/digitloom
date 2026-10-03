@@ -52,7 +52,7 @@ function wordButton(entry, index) {
     button.append(grammar);
     descriptions.push(grammar.id);
   }
-  if (index < 5) {
+  if (index < (dictionary.source.commonWords.countsByCode[code] ?? 0)) {
     button.classList.add('recommended');
     const recommendation = document.createElement('span');
     recommendation.className = 'word-recommendation';

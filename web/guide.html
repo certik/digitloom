@@ -61,10 +61,12 @@
       beside the input label for a quick reminder of the sound families.</p>
     <p>Suggestions cover the beginning of
       the unencoded part, grouped by code length. The longest groups come first;
-      the more common words lead each group. Up to five highest-ranked choices
-      have a green background. These
-      are starting points based on usage frequency, not a promise of vivid
-      imagery; unusual codes can still have obscure words at the top.
+      the more common words lead each group. Words with a wordfreq Zipf score
+      of at least 3.5 have a green background. This is roughly three occurrences
+      per million words. There is no fixed number of highlights: a group can
+      have many, one, or none. Lower-frequency and unranked words remain
+      available. Frequency is a guide, not a guarantee of personal familiarity
+      or vivid imagery.
       A group's heading tells you how
       many digits its words cover. Each button's description gives the exact
       code.</p>
