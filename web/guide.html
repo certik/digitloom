@@ -61,7 +61,13 @@
       beside the input label for a quick reminder of the sound families.</p>
     <p>Suggestions cover the beginning of
       the unencoded part, grouped by code length. The longest groups come first;
-      the more common words lead each group. A group's heading tells you how
+      the more common words lead each group. Words with a wordfreq Zipf score
+      of at least 3.5 have a green background. This is roughly three occurrences
+      per million words. There is no fixed number of highlights: a group can
+      have many, one, or none. Lower-frequency and unranked words remain
+      available. Frequency is a guide, not a guarantee of personal familiarity
+      or vivid imagery.
+      A group's heading tells you how
       many digits its words cover. Each button's description gives the exact
       code.</p>
     <p>Choose a word and the remaining digits get their own suggestions.
@@ -73,6 +79,22 @@
       digit remains, one-digit words are offered. There is no five-digit limit:
       long words can cover longer stretches, and a sequence can encode a number
       of any length.</p>
+    <h2>Split a long number automatically</h2>
+    <p>Turn on <strong>Auto split</strong> beside the input label to suggest
+      mixed two-, three-, and four-digit word chunks. The builder adds spaces
+      at their boundaries and shows words for the next chunk only. You still
+      choose each word; it does not invent a sentence for you.</p>
+    <p>For example, <code>952147132</code> splits into
+      <code>9521 471 32</code>, which can become <em>planet rocket moon</em>.
+      The split prefers longer available chunks, but checks the rest of the
+      number too. A one-digit ending is used only when no complete split
+      avoids it. This chooses boundaries, not the most memorable phrase.</p>
+    <p>Switch Auto split off to explore all word lengths again. Switching modes
+      keeps your selected words and changes only the remaining digits.
+      <strong>Undo word</strong> restores the previous digits and replans them;
+      editing starts over. <strong>Clear</strong> keeps your chosen mode.
+      If no complete automatic split exists, the builder asks you to turn
+      Auto split off rather than silently changing modes.</p>
     <h2>A little help from grammar</h2>
     <p>A small text label beneath a word lists its possible roles, such as
       "noun", "verb", or "noun, verb, adjective". All word spellings use the

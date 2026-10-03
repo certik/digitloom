@@ -71,8 +71,29 @@ class DictionaryTests(unittest.TestCase):
         self.assertEqual(db["source"]["zeroDigitWords"], ["silent"])
         self.assertNotIn("", db["byCode"])
 
+    def test_common_counts_use_the_inclusive_zipf_threshold_not_pos_or_list_length(self):
+        words = {
+            "frequent": {"0"}, "above": {"0", "00"}, "at": {"0", "00"},
+            "below": {"0", "00"}, "missing": {"0", "00"},
+            "only-common": {"12"}, "only-rare": {"123"}, "silent": {""},
+        }
+        ranks = {"frequent": 300, "above": 549, "at": 550, "below": 551,
+                 "only-common": 550, "only-rare": 551, "silent": 100}
+        lemmas = {"n": {"below", "missing"}, "v": set(), "a": set()}
+        exceptions = {"n": {}, "v": {}, "a": {}}
+        db = build_database(words, sum(map(len, words.values())), ranks, lemmas, exceptions, {})
+        self.assertEqual(db["version"], 4)
+        self.assertEqual(db["source"]["commonWords"], {
+            "minimumZipf": 3.5, "countsByCode": {"0": 3, "00": 2, "12": 1},
+        })
+        self.assertEqual(db["byCode"]["00"], [
+            ["above", ""], ["at", ""], ["below", "n"], ["missing", "n"],
+        ])
+
     def test_packed_dictionary_is_deterministic_and_preserves_code_and_word_order(self):
-        db = {"version": 3, "source": {"test": True}, "byCode": {
+        db = {"version": 4, "source": {
+            "test": True, "commonWords": {"minimumZipf": 3.5, "countsByCode": {"00": 1, "12": 1}},
+        }, "byCode": {
             "12": [["common", "nva"], ["rare", ""]],
             "00": [["says", "nv"]],
             "123": [["longer", "a"]],
@@ -89,7 +110,7 @@ class DictionaryTests(unittest.TestCase):
         self.assertEqual(flags, "31256704")
         self.assertEqual(words.split("\n"), ["says", "one", "two", "three", "four", "common", "rare", "longer"])
         self.assertEqual(header["source"], db["source"])
-        self.assertEqual(header["dictionaryVersion"], 3)
+        self.assertEqual(header["dictionaryVersion"], 4)
         db["byCode"]["0"] = [["bad\nword", ""]]
         with self.assertRaises(ValueError):
             pack_database(db)

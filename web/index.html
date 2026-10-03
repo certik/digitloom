@@ -23,7 +23,12 @@
   <main class="page" id="workspace">
     <h1 class="visually-hidden">Turn numbers into memorable words</h1>
     <section class="composer" aria-label="Word builder">
-      <label for="number">Your number</label>
+      <div class="composer-heading">
+        <label for="number">Your number</label>
+        <label class="split-toggle" for="auto-split">
+          <input id="auto-split" type="checkbox" aria-describedby="split-hint" disabled>Auto split
+        </label>
+      </div>
       <div class="input-row">
         <input id="number" type="text" inputmode="numeric" autocomplete="off" spellcheck="false"
           placeholder="Try 3277" aria-describedby="number-hint input-error" disabled>
@@ -48,6 +53,7 @@
         </div>
       </details>
       <p class="visually-hidden" id="number-hint">Digits and spaces welcome. Leading zeros stay exactly as entered.</p>
+      <p class="visually-hidden" id="split-hint">Optional: split the remaining digits into available 2-4-digit words, preferring longer chunks without a single-digit leftover. You still choose each word. Turn off to see all word lengths.</p>
       <p id="input-error" class="error" role="alert" hidden></p>
       <p id="library-status" role="status">Opening the word library...</p>
       <p id="library-error" class="error" role="alert" hidden></p>

@@ -22,13 +22,40 @@ export function formatNumber(selected, remaining) {
   return chunks.join(' ');
 }
 
+export function planChunks(db, digits) {
+  const lengths = new Uint8Array(digits.length);
+  const singleDigitTails = new Uint8Array(digits.length + 1).fill(2);
+  singleDigitTails[digits.length] = 0;
+  for (let offset = digits.length - 1; offset >= 0; offset -= 1) {
+    const minimum = offset === digits.length - 1 ? 1 : 2;
+    for (let length = Math.min(4, digits.length - offset); length >= minimum; length -= 1) {
+      if (!db.byCode[digits.slice(offset, offset + length)]?.length) continue;
+      const tails = singleDigitTails[offset + length] + Number(length === 1);
+      // Prefer a complete split without a single-digit tail, then longer chunks.
+      if (tails < singleDigitTails[offset]) {
+        singleDigitTails[offset] = tails;
+        lengths[offset] = length;
+      }
+    }
+  }
+  if (singleDigitTails[0] === 2) return null;
+  const chunks = [];
+  for (let offset = 0; offset < digits.length; offset += lengths[offset]) {
+    chunks.push(digits.slice(offset, offset + lengths[offset]));
+  }
+  return chunks;
+}
+
 export function validateDatabase(db) {
   const invalid = () => { throw new Error('Invalid local word database; rebuild it with npm run build:data.'); };
-  if (db?.version !== 3 || !db.byCode ||
+  const commonWords = db?.source?.commonWords;
+  if (db?.version !== 4 || !db.byCode ||
       typeof db.byCode !== 'object' || Array.isArray(db.byCode) ||
       !Number.isSafeInteger(db.source?.maxCodeLength) || db.source.maxCodeLength < 0 ||
       !Number.isSafeInteger(db.source.pairCount) || db.source.pairCount < 0 ||
-      !Number.isSafeInteger(db.source.codeCount) || db.source.codeCount < 0) invalid();
+      !Number.isSafeInteger(db.source.codeCount) || db.source.codeCount < 0 ||
+      commonWords?.minimumZipf !== 3.5 || !commonWords.countsByCode ||
+      typeof commonWords.countsByCode !== 'object' || Array.isArray(commonWords.countsByCode)) invalid();
   let pairCount = 0;
   let maxCodeLength = 0;
   for (const [code, entries] of Object.entries(db.byCode)) {
@@ -45,6 +72,10 @@ export function validateDatabase(db) {
   }
   if (pairCount !== db.source.pairCount || maxCodeLength !== db.source.maxCodeLength ||
       Object.keys(db.byCode).length !== db.source.codeCount) invalid();
+  for (const [code, count] of Object.entries(commonWords.countsByCode)) {
+    if (!Object.hasOwn(db.byCode, code) || !Number.isSafeInteger(count) ||
+        count < 1 || count > db.byCode[code].length) invalid();
+  }
   return db;
 }
 

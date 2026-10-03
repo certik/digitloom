@@ -36,7 +36,10 @@
       Copyright 2022 Robyn Speer. DigitLoom reads frequency bins for exact
       lowercase spellings, not wordfreq's tokenization or phrase estimation.
       Frequency ties are alphabetical; words missing from the frequency list
-      remain available at the end of their group.</p>
+      remain available at the end of their group. Green highlights mark every
+      word with a Zipf score of at least 3.5, approximately 3.2 occurrences per
+      million words, without a per-group quota. Lower-frequency and unranked
+      words are not highlighted.</p>
     <p>The data is licensed under
       <a href="licenses/CC-BY-SA-4.0.txt">Creative Commons
       Attribution-ShareAlike 4.0 International</a>. The full
@@ -65,7 +68,9 @@
       adapting the data. The code license does not replace the data licenses.</p>
     <h2>What the build changes</h2>
     <p>The build turns phonemes into digit strings, assigns frequency ranks and
-      possible parts of speech, and groups words by exact code. It does not guess
+      possible parts of speech, and groups words by exact code. It records the
+      common-word cutoff and how many entries at the start of each ranked group
+      meet it. It does not guess
       pronunciations from spelling. Stress and most vowels are ignored, but the
       r-colored vowel ER encodes 4. TH and DH encode 1, NG encodes 2, and ZH
       encodes 6. Each repeated consonant sound contributes its own digit.</p>

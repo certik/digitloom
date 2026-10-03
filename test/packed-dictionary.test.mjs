@@ -9,7 +9,7 @@ const compressed = await readFile(new URL('../web/data/db.txt.gz', import.meta.u
 
 test('packed asset preserves the entire dictionary, metadata, and ranked lists', () => {
   assert.deepEqual(unpackDictionary(gunzipSync(compressed).toString('utf8')), plain);
-  assert.ok(compressed.length < 530_000);
+  assert.ok(compressed.length < 540_000);
   assert.ok(compressed.length < Buffer.byteLength(JSON.stringify(plain)) * 0.23);
 });
 
@@ -20,19 +20,26 @@ test('native decompression yields exactly the same dictionary as gzip tooling', 
 
 test('packed format handles leading zeros, punctuation, Unicode, and all POS combinations', () => {
   const header = {
-    format: 'digitloom-columns', version: 1, dictionaryVersion: 3,
-    source: { maxCodeLength: 2, pairCount: 8, codeCount: 1 },
+    format: 'digitloom-columns', version: 1, dictionaryVersion: 4,
+    source: {
+      maxCodeLength: 2, pairCount: 8, codeCount: 1,
+      commonWords: { minimumZipf: 3.5, countsByCode: { '00': 3 } }
+    },
     codes: ['00'], counts: [8]
   };
   const words = ['café', "a's", 'comma,', 'quote"', 'four', 'five', 'six', 'seven'];
   const db = unpackDictionary(`${JSON.stringify(header)}\n01234567\n${words.join('\n')}`);
   assert.deepEqual(db.byCode['00'], words.map((word, i) => [word, ['', 'n', 'v', 'nv', 'a', 'na', 'va', 'nva'][i]]));
+  assert.deepEqual(db.source.commonWords, header.source.commonWords);
 });
 
 test('malformed packed data is rejected rather than silently omitting entries', () => {
   const header = {
-    format: 'digitloom-columns', version: 1, dictionaryVersion: 3,
-    source: { maxCodeLength: 1, pairCount: 1, codeCount: 1 },
+    format: 'digitloom-columns', version: 1, dictionaryVersion: 4,
+    source: {
+      maxCodeLength: 1, pairCount: 1, codeCount: 1,
+      commonWords: { minimumZipf: 3.5, countsByCode: { '0': 1 } }
+    },
     codes: ['0'], counts: [1]
   };
   for (const text of [
@@ -42,6 +49,9 @@ test('malformed packed data is rejected rather than silently omitting entries', 
     `${JSON.stringify(header)}\n0\nword\nextra`,
     ...[
       { ...header, format: 'unknown' },
+      { ...header, dictionaryVersion: 3 },
+      { ...header, source: { ...header.source, commonWords: undefined } },
+      { ...header, source: { ...header.source, commonWords: { minimumZipf: 3.5, countsByCode: { '0': 2 } } } },
       { ...header, counts: [2] },
       { ...header, counts: [-1] },
       { ...header, counts: [0.5] },

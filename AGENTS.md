@@ -29,7 +29,7 @@ pronunciation data and original interface design; keep the app fully static.
 | `web/icon.svg` | Original woven-line brand mark and favicon. |
 | `web/guide.html` | Instructions, sound families, and the moon-cake example. |
 | `web/sources.html` | Public source credit, licenses, and descriptions of data transformations. |
-| `web/data/db.json` | Canonical, tracked format-3 dictionary: source metadata and `byCode` ranked word/POS lists. |
+| `web/data/db.json` | Canonical, tracked format-4 dictionary: source metadata and `byCode` ranked word/POS lists. |
 | `web/data/db.txt.gz` | Equivalent tracked `digitloom-columns` version-1 payload with deterministic gzip headers. |
 | `web/licenses/CMUdict.txt` | Upstream Carnegie Mellon dictionary notice. |
 | `web/licenses/WordNet.txt` | Upstream Princeton WordNet 3.0 notice. |
@@ -58,8 +58,13 @@ Never hand-edit generated assets. `byCode` preserves frequency ranking within
 each code, including alphabetical tie-breaking. Longest-first grouping belongs
 to the UI, not to a lossy data transformation.
 
+`source.commonWords` records `minimumZipf: 3.5` and sparse positive
+`countsByCode`. The first that-many entries of each frequency-ranked list
+qualify for green highlights; omitted codes have none. Preserve this prefix
+invariant and derive eligibility from exact wordfreq bins, not POS or list size.
+
 The packed format starts with a JSON header (`format: "digitloom-columns"`,
-version 1, dictionaryVersion 3, source, codes, counts), followed by one line of
+version 1, dictionaryVersion 4, source, codes, counts), followed by one line of
 POS masks (n=1, v=2, a=4) and newline-separated spellings. The decoder restores
 the same canonical dictionary. Native gzip is preferred; JSON is a capability
 fallback, never a silent retry for a broken compressed download.
@@ -71,6 +76,9 @@ The inline sound key must be keyboard/touch accessible without obscuring input.
 State must remain correct after editing, clearing, selecting, or undoing.
 Suggestions cover at least two digits while multiple digits remain, and one
 digit when a single digit remains.
+Auto split is opt-in: plan complete 2-4-digit chunks, avoid a final single digit
+when possible, and preserve selected words when switching modes. Green highlights
+include every word at Zipf 3.5 or above, with no cap or minimum and no reordering.
 
 No external scripts, fonts, analytics, API requests, or accounts at runtime.
 Retain relative asset links for project-site deployment. Keep numbers out of

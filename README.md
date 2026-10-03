@@ -36,6 +36,11 @@ would be `https://certik.github.io/digitloom/`; a custom domain is optional.
   beneath the number. Instructions and data details live on separate pages.
 - Word groups ordered by encoded length, longest first.
 - Common words first within each length, with alphabetical frequency ties.
+- Every word with a wordfreq Zipf score of at least 3.5 highlighted in green,
+  without changing word typography or popularity order. There is no fixed quota.
+- Optional Auto split for mixed 2-4-digit word chunks, with a one-digit ending
+  only when no complete split avoids it. All word lengths remain available
+  with Auto split off.
 - Top-aligned word spellings with plain-text grammatical hints underneath.
 - A memory thread, encoded-digit progress, and Undo word shown after a choice,
   plus Clear to start over.
@@ -50,6 +55,28 @@ Each choice encodes a prefix of the remaining digits. Suggestions cover at least
 two digits while two or more remain; one-digit words handle a one-digit
 remainder. A selected word always uses the exact code on its button, even if
 another pronunciation gives that spelling a different code.
+
+Auto split adds spaces at suggested word boundaries and offers words for the
+next chunk only. It prefers longer available chunks while checking that the
+rest can also be encoded, avoiding a final single digit when possible.
+For example, `952147132` splits into `9521 471 32`, which can become
+**planet rocket moon**. Turning Auto split on or off preserves selected words
+and replans only the remaining digits. Editing still starts a new thread;
+Clear leaves the chosen mode in place. If no complete split exists, the app
+explains this instead of silently changing modes.
+
+Green highlights use a fixed wordfreq Zipf cutoff of 3.5, approximately 3.2
+occurrences per million words. Every qualifying word is highlighted, whether
+that means dozens, one, or none in a group. Lower-frequency and unranked words
+remain available without highlights. Grammar labels do not affect this rule;
+usage frequency is a guide, not a personal familiarity or memorability score.
+
+The format-4 dictionary records the cutoff in
+`source.commonWords.minimumZipf` and the number of qualifying words per code in
+`source.commonWords.countsByCode`. Since each list is frequency-sorted, its
+first that-many entries meet the cutoff. Codes omitted from this sparse map
+have zero qualifying words. This preserves the unchanged word/POS lists
+without adding a frequency score to every entry.
 
 ## Dictionary provenance
 
@@ -143,15 +170,15 @@ fingerprints, and tests together.
 
 ## Compact browser download
 
-The readable JSON is about 2.37 MB. Modern browsers instead download
-`web/data/db.txt.gz`, about **516 KB**, using native `DecompressionStream`.
+The readable JSON is about 2.43 MB. Modern browsers instead download
+`web/data/db.txt.gz`, about **533 KB**, using native `DecompressionStream`.
 This is approximately a **78% transfer reduction** on a plain static host.
 No external decompression library or server compression setting is required.
 Browsers without the native API fetch JSON. Download/decompression errors are
 reported explicitly, not hidden by downloading the larger fallback.
 
 The packed format has a JSON header identifying `digitloom-columns` version 1,
-the version-3 dictionary metadata, lexical code order, and counts. A second line
+the version-4 dictionary metadata, lexical code order, and counts. A second line
 contains POS masks (noun=1, verb=2, adjective=4); subsequent lines are words.
 Within-code ranked order is preserved exactly. Gzip level 9 omits the filename
 and timestamp. Both transport forms restore identical dictionaries.
