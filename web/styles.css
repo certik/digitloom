@@ -32,7 +32,7 @@ button:disabled { cursor: default; opacity: 0.55; }
 nav { display: flex; align-items: center; gap: 1.4rem; font-size: 0.9rem; }
 nav > * { min-width: 0; }
 nav a { color: var(--muted); }
-nav .external-link { flex: none; white-space: nowrap; }
+nav .external-link, nav .nav-tool { flex: none; white-space: nowrap; }
 nav [aria-current="page"] { color: var(--ink); font-weight: 750; }
 .eyebrow { margin: 0 0 0.5rem; color: var(--accent); font-size: 0.75rem; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase; }
 h1, h2, h3, p { margin-top: 0; }
@@ -87,9 +87,10 @@ progress::-moz-progress-bar { background: var(--progress-fill); }
 .site-footer p { margin-bottom: 0.4rem; }
 .article { max-width: 46rem; margin-block: 3rem; }
 .article h2 { font-size: 1.2rem; margin-top: 2rem; }
+.article h3 { font-size: 1rem; margin: 1.5rem 0 0.5rem; }
 .article p, .article li { color: var(--muted); }
 .article strong { color: var(--ink); }
-.article .example { background: var(--paper); border-left: 3px solid var(--accent); padding: 1rem 1.25rem; }
+.article .example, .article .scene-example { background: var(--paper); border-left: 3px solid var(--accent); padding: 1rem 1.25rem; }
 .article table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
 .article th, .article td { padding: 0.65rem 0.5rem; text-align: left; border-bottom: 1px solid var(--line); }
 .article code { overflow-wrap: anywhere; }

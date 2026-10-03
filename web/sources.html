@@ -11,6 +11,7 @@
   <header class="site-header">
     <nav aria-label="Site">
       <a class="brand" href="index.html"><img src="icon.svg" width="32" height="32" alt=""><span class="brand-name">DigitLoom</span></a>
+      <a class="nav-tool" href="pao.html">PAO</a>
       <a href="guide.html">How it works</a>
       <strong aria-current="page">Data &amp; licenses</strong>
       <a class="external-link" href="https://github.com/certik/digitloom" aria-describedby="github-link-hint">GitHub <span aria-hidden="true">&#8599;</span></a>
@@ -65,7 +66,8 @@
       <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>
       with all the source notices retained. Keep the attributions, identify your
       modifications, and follow the share-alike terms when redistributing or
-      adapting the data. The code license does not replace the data licenses.</p>
+      adapting the data. The code license does not replace the data licenses.
+      The starter PAO table has its own share-alike terms, described below.</p>
     <h2>What the build changes</h2>
     <p>The build turns phonemes into digit strings, assigns frequency ranks and
       possible parts of speech, and groups words by exact code. It records the
@@ -83,6 +85,23 @@
       Unpacking restores the complete ranked dictionary and source metadata.
       Browsers with native decompression use it directly; others load JSON.
       No externally hosted decoder is needed.</p>
+    <h2 id="pao-starter">The starter PAO table</h2>
+    <p>The <a href="pao.html">PAO page</a> opens an editable starter table,
+      the <a href="data/pao-starter.json">DigitLoom starter PAO</a>, written by
+      DigitLoom contributors. Its people, actions, and objects are original
+      example associations for codes 00 to 99, not anyone's authoritative
+      personal table. Its pegs are words from the CMUdict-derived dictionary
+      described above. The starter is distributed under
+      <a href="licenses/CC-BY-SA-4.0.txt">CC BY-SA 4.0</a>, separately from the
+      MIT-licensed software. The file records its license and attribution,
+      and exports of tables edited from it keep both fields. Credit
+      DigitLoom contributors, link to this page, indicate your changes, and
+      share adaptations under the same terms.</p>
+    <p>Tables you import keep the license and attribution they contain;
+      DigitLoom displays them as plain text and adds no claims of its own. A
+      new blank table starts with neither. PAO associations are never merged
+      into the word library, and your tables stay in the open tab unless you
+      export them.</p>
   </main>
   <footer class="site-footer"><p>DigitLoom. Built with open data and a little imagination.</p></footer>
 </body>

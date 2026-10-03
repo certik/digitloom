@@ -25,3 +25,17 @@ See web/licenses/WordNet.txt.
 
 web/sources.html describes source versions, transformations, and attribution.
 scripts/dictionary-sources.json records pinned revisions and file hashes.
+
+Starter PAO table:
+web/data/pao-starter.json, the DigitLoom starter PAO, is an original table
+written by DigitLoom contributors. Its people, actions, and objects are
+original associations; its pegs are words from the CMUdict-derived dictionary
+vocabulary described above. It is distributed under Creative Commons
+Attribution-ShareAlike 4.0 International, separately from the MIT-licensed
+software. Keep its license and attribution fields, credit DigitLoom
+contributors with a link to https://certik.github.io/digitloom/sources.html,
+indicate changes, and share adaptations under the same terms.
+See web/licenses/CC-BY-SA-4.0.txt.
+
+PAO tables that users create or import are not part of this distribution.
+They keep whatever license and attribution information they contain.
