@@ -137,7 +137,8 @@ test('typing, validation, Clear, and zero-prefixed numbers keep the UI coherent'
   await expect(page.getByRole('button', { name: 'Clear', exact: true })).toBeDisabled();
 });
 
-test('length groups, common-word ranking, plain grammar labels and exact codes are preserved', async ({ page }) => {
+test('length groups, frequency recommendations, plain grammar labels and exact codes are preserved', async ({ page }) => {
+  const dictionary = JSON.parse(await readFile(new URL('../web/data/db.json', import.meta.url)));
   await page.locator('#number').fill('1234');
   await expect(page.locator('.group-heading h3')).toHaveText(['4-digit words', '3-digit words', '2-digit words']);
   for (const [length, count] of [[4, 5], [3, 17], [2, 440]]) {
@@ -145,17 +146,26 @@ test('length groups, common-word ranking, plain grammar labels and exact codes a
     await expect(group.getByRole('button')).toHaveCount(count);
     expect(await group.locator('button').evaluateAll((buttons) => buttons.map((b) => b.dataset.code.length)))
       .toEqual(Array(count).fill(length));
+    const rankedWords = dictionary.byCode['1234'.slice(0, length)].map(([word]) => word);
+    await expect(group.locator('.word-spelling')).toHaveText(rankedWords);
+    await expect(group.locator('.recommended .word-spelling')).toHaveText(rankedWords.slice(0, 5));
+    await expect(group.locator('.word-recommendation')).toHaveText(Array(Math.min(5, count)).fill('Recommended'));
   }
   const common = page.getByRole('region', { name: '2-digit words', exact: true }).getByRole('button');
   await expect(common.nth(0).locator('.word-spelling')).toHaveText("don't");
   await expect(common.nth(1).locator('.word-spelling')).toHaveText('than');
   await expect(common.nth(2).locator('.word-spelling')).toHaveText('then');
-  for (const [word, label] of [['then', 'noun, adjective'], ['doing', 'verb'], ['down', 'noun, verb, adjective']]) {
+  for (const [word, label, recommended] of [
+    ['then', 'noun, adjective', true], ['doing', 'verb', false], ['down', 'noun, verb, adjective', true]
+  ]) {
     await expect(choose(page, word, '12').locator('.word-grammar')).toHaveText(label);
-    await expect(choose(page, word, '12')).toHaveAccessibleDescription(label);
-    await expect(choose(page, word, '12')).toHaveClass('word-choice');
+    await expect(choose(page, word, '12')).toHaveAccessibleDescription(`${label}${recommended ? ' Recommended' : ''}`);
+    await expect(choose(page, word, '12')).toHaveClass(`word-choice${recommended ? ' recommended' : ''}`);
   }
   await expect(choose(page, "don't", '12').locator('.word-grammar')).toHaveCount(0);
+  await expect(choose(page, "don't", '12')).toHaveAccessibleDescription('Recommended');
+  const background = (button) => button.evaluate((element) => getComputedStyle(element).backgroundColor);
+  expect(await background(common.nth(0))).not.toBe(await background(common.nth(5)));
   await expect(page.locator('#options sup')).toHaveCount(0);
   const typography = await page.locator('.word-spelling').evaluateAll((words) => words.map((word) => {
     const style = getComputedStyle(word);
@@ -168,6 +178,134 @@ test('length groups, common-word ranking, plain grammar labels and exact codes a
   await expect(page.locator('#number')).toHaveValue('123 4');
   await expect(page.locator('.group-heading h3')).toHaveText(['1-digit words']);
   await page.getByRole('region', { name: '1-digit words' }).getByRole('button').first().click();
+  await expect(page.locator('#step-title')).toHaveText('Your number is encoded.');
+});
+
+test('automatic chunking is optional and preserves choices through mode switches and undo', async ({ page, isMobile }) => {
+  const input = page.locator('#number');
+  const split = page.getByRole('checkbox', { name: 'Auto split', exact: true });
+  await expect(split).not.toBeChecked();
+  await input.fill('952147132');
+  await expect(input).toHaveValue('952147132');
+  if (isMobile) await split.tap();
+  else {
+    await split.focus();
+    await page.keyboard.press('Space');
+  }
+  await expect(split).toBeChecked();
+  await expect(input).toHaveValue('9521 471 32');
+  await expect(page.locator('.group-heading h3')).toHaveText(['4-digit words']);
+  expect(await page.locator('.word-choice').evaluateAll((buttons) => [...new Set(buttons.map((b) => b.dataset.code))]))
+    .toEqual(['9521']);
+  await choose(page, 'planet', '9521').click();
+  await expect(page.locator('#sequence li')).toHaveText(['planet9521']);
+  await expect(page.locator('#progress-label')).toHaveText('4 of 9 digits encoded');
+  await expect(page.locator('.group-heading h3')).toHaveText(['3-digit words']);
+  await expect(choose(page, 'ragtime', '4713')).toHaveCount(0);
+  await split.uncheck();
+  await expect(input).toHaveValue('9521 47132');
+  await expect(choose(page, 'ragtime', '4713')).toBeVisible();
+  await expect(page.locator('#sequence li')).toHaveText(['planet9521']);
+  await split.check();
+  await expect(input).toHaveValue('9521 471 32');
+  await expect(page.locator('#progress-label')).toHaveText('4 of 9 digits encoded');
+  await choose(page, 'rocket', '471').click();
+  await expect(page.locator('.group-heading h3')).toHaveText(['2-digit words']);
+  await choose(page, 'moon', '32').click();
+  await expect(page.locator('#sequence li')).toHaveText(['planet9521', 'rocket471', 'moon32']);
+  await expect(page.locator('#progress-label')).toHaveText('9 of 9 digits encoded');
+  await expect(page.locator('#step-title')).toHaveText('Your number is encoded.');
+  for (const [length, encoded] of [[2, 7], [3, 4], [4, 0]]) {
+    await page.getByRole('button', { name: 'Undo word', exact: true }).click();
+    await expect(page.locator('.group-heading h3')).toHaveText([`${length}-digit words`]);
+    await expect(page.locator('#progress-label')).toHaveText(`${encoded} of 9 digits encoded`);
+  }
+  await expect(input).toHaveValue('9521 471 32');
+  await expect(page.locator('#memory-thread')).toBeHidden();
+  await expect(input).toBeFocused();
+});
+
+test('automatic spacing preserves cursor edits, validation, leading zeros, and Clear', async ({ page }) => {
+  const input = page.locator('#number');
+  const split = page.getByRole('checkbox', { name: 'Auto split', exact: true });
+  await split.check();
+  await input.fill('952147132');
+  await input.evaluate((element) => element.setSelectionRange(5, 5));
+  await input.press('Backspace');
+  expect((await input.inputValue()).replaceAll(' ', '')).toBe('95247132');
+  expect(await input.evaluate((element) => element.selectionStart)).toBe(3);
+
+  await input.fill('952147132');
+  await input.evaluate((element) => element.setSelectionRange(4, 4));
+  await input.press('Delete');
+  expect((await input.inputValue()).replaceAll(' ', '')).toBe('95217132');
+  expect(await input.evaluate((element) => element.selectionStart)).toBe(4);
+
+  await input.fill('952147132');
+  await input.evaluate((element) => element.setSelectionRange(3, 7));
+  await page.keyboard.insertText('0');
+  expect((await input.inputValue()).replaceAll(' ', '')).toBe('9520132');
+  expect(await input.evaluate((element) => element.value.slice(0, element.selectionStart).replaceAll(' ', '').length)).toBe(4);
+
+  await input.fill('952147132');
+  await choose(page, 'planet', '9521').click();
+  await input.fill('12a');
+  await expect(input).toHaveAttribute('aria-invalid', 'true');
+  await expect(page.locator('#sequence')).toBeEmpty();
+  await expect(page.locator('#options')).toBeEmpty();
+  await expect(page.locator('#input-error')).toHaveText('Use digits and spaces only.');
+  await input.fill(' 009 20 ');
+  expect((await input.inputValue()).replaceAll(' ', '')).toBe('00920');
+  await expect(input).toHaveAttribute('aria-invalid', 'false');
+  await page.getByRole('button', { name: 'Clear', exact: true }).click();
+  await expect(input).toHaveValue('');
+  await expect(input).toBeFocused();
+  await expect(split).toBeChecked();
+  await expect(page.locator('.options-area')).toBeHidden();
+  await input.fill('0');
+  await expect(page.locator('.group-heading h3')).toHaveText(['1-digit words']);
+  await choose(page, 'ice', '0').click();
+  await expect(page.locator('#step-title')).toHaveText('Your number is encoded.');
+});
+
+test('automatic chunking supports long numbers without changing their digits', async ({ page }) => {
+  await page.getByRole('checkbox', { name: 'Auto split', exact: true }).check();
+  const input = page.locator('#number');
+  const digits = '00920'.repeat(2000);
+  await input.fill(digits);
+  expect((await input.inputValue()).replaceAll(' ', '')).toBe(digits);
+  const nextWord = page.locator('.word-choice').first();
+  const code = await nextWord.getAttribute('data-code');
+  expect(code.length).toBeGreaterThanOrEqual(2);
+  expect(code.length).toBeLessThanOrEqual(4);
+  await nextWord.click();
+  await expect(page.locator('#progress-label')).toHaveText(`${code.length} of ${digits.length} digits encoded`);
+  expect((await input.inputValue()).replaceAll(' ', '')).toBe(digits);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize().width);
+});
+
+test('unavailable automatic splits explain the problem without silently changing modes', async ({ page }) => {
+  await page.addInitScript(() => { window.DecompressionStream = undefined; });
+  await page.route('**/data/db.json', (route) => route.fulfill({
+    json: {
+      version: 3, source: { pairCount: 1, codeCount: 1, maxCodeLength: 5 },
+      byCode: { '12345': [['example', 'n']] }
+    }
+  }));
+  await page.reload();
+  const input = page.locator('#number');
+  await expect(input).toBeEnabled();
+  await input.fill('12345');
+  await expect(choose(page, 'example', '12345')).toBeVisible();
+  const split = page.getByRole('checkbox', { name: 'Auto split', exact: true });
+  await split.check();
+  await expect(input).toHaveValue('12345');
+  await expect(split).toBeChecked();
+  await expect(page.locator('#step-title')).toHaveText('No automatic split available');
+  await expect(page.locator('#empty-options')).toContainText('Turn off Auto split to see all word lengths');
+  await expect(page.locator('#options')).toBeEmpty();
+  await split.uncheck();
+  await choose(page, 'example', '12345').click();
   await expect(page.locator('#step-title')).toHaveText('Your number is encoded.');
 });
 
@@ -212,6 +350,10 @@ test('the inline sound key works with keyboard and touch without covering the bu
   const key = page.locator('#sound-key');
   const toggle = key.locator('summary');
   const closedInput = await page.locator('#number').boundingBox();
+  const split = await page.locator('label[for="auto-split"]').boundingBox();
+  const keyToggle = await toggle.boundingBox();
+  expect(split.x + split.width).toBeLessThanOrEqual(keyToggle.x);
+  expect(split.y + split.height).toBeLessThanOrEqual(closedInput.y);
   await toggle.focus();
   await page.keyboard.press('Enter');
   await expect(key).toHaveAttribute('open', '');

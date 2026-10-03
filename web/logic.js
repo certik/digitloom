@@ -22,6 +22,30 @@ export function formatNumber(selected, remaining) {
   return chunks.join(' ');
 }
 
+export function planChunks(db, digits) {
+  const lengths = new Uint8Array(digits.length);
+  const singleDigitTails = new Uint8Array(digits.length + 1).fill(2);
+  singleDigitTails[digits.length] = 0;
+  for (let offset = digits.length - 1; offset >= 0; offset -= 1) {
+    const minimum = offset === digits.length - 1 ? 1 : 2;
+    for (let length = Math.min(4, digits.length - offset); length >= minimum; length -= 1) {
+      if (!db.byCode[digits.slice(offset, offset + length)]?.length) continue;
+      const tails = singleDigitTails[offset + length] + Number(length === 1);
+      // Prefer a complete split without a single-digit tail, then longer chunks.
+      if (tails < singleDigitTails[offset]) {
+        singleDigitTails[offset] = tails;
+        lengths[offset] = length;
+      }
+    }
+  }
+  if (singleDigitTails[0] === 2) return null;
+  const chunks = [];
+  for (let offset = 0; offset < digits.length; offset += lengths[offset]) {
+    chunks.push(digits.slice(offset, offset + lengths[offset]));
+  }
+  return chunks;
+}
+
 export function validateDatabase(db) {
   const invalid = () => { throw new Error('Invalid local word database; rebuild it with npm run build:data.'); };
   if (db?.version !== 3 || !db.byCode ||

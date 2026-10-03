@@ -71,6 +71,9 @@ The inline sound key must be keyboard/touch accessible without obscuring input.
 State must remain correct after editing, clearing, selecting, or undoing.
 Suggestions cover at least two digits while multiple digits remain, and one
 digit when a single digit remains.
+Auto split is opt-in: plan complete 2-4-digit chunks, avoid a final single digit
+when possible, and preserve selected words when switching modes. Recommendations
+highlight the first five frequency-ranked words per group without reordering.
 
 No external scripts, fonts, analytics, API requests, or accounts at runtime.
 Retain relative asset links for project-site deployment. Keep numbers out of

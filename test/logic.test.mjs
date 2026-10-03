@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, stat } from 'node:fs/promises';
-import { chooseCandidate, formatNumber, getCandidates, groupCandidates, normalizeInput, partOfSpeechLabel, validateDatabase } from '../web/logic.js';
+import { chooseCandidate, formatNumber, getCandidates, groupCandidates, normalizeInput, partOfSpeechLabel, planChunks, validateDatabase } from '../web/logic.js';
 
 const db = JSON.parse(await readFile(new URL('../web/data/db.json', import.meta.url)));
 
@@ -77,6 +77,42 @@ test('choosing a candidate consumes only its code and rejects invalid choices', 
   assert.throws(() => chooseCandidate(state, first), /remaining digits/);
   assert.throws(() => chooseCandidate(state, ['empty', '', '']), /remaining digits/);
   assert.throws(() => chooseCandidate(state, undefined), /remaining digits/);
+});
+
+test('automatic chunks prefer longer complete splits without a single-digit tail', () => {
+  for (const [digits, codes, expected] of [
+    ['', [], []],
+    ['0', ['0'], ['0']],
+    ['123456', ['12', '123', '1234', '34', '456', '56'], ['1234', '56']],
+    ['12345', ['1234', '123', '45', '5'], ['123', '45']],
+    ['1234567', ['1234', '56', '7', '123', '45', '67'], ['123', '45', '67']],
+    ['123456', ['1234', '123', '456'], ['123', '456']],
+    ['12345', ['1234', '5'], ['1234', '5']],
+    ['000912', ['0009', '00', '0912', '12'], ['0009', '12']],
+    ['123', ['1', '23'], null],
+    ['12345', ['12345'], null],
+    ['1234', ['12'], null],
+    ['99', [], null]
+  ]) {
+    const database = { byCode: Object.fromEntries(codes.map((code) => [code, [[`word-${code}`, '']]])) };
+    assert.deepEqual(planChunks(database, digits), expected, `${digits}: ${codes.join(', ')}`);
+  }
+});
+
+test('automatic chunks use real dictionary codes and handle long input without recursion', () => {
+  assert.deepEqual(planChunks(db, '952147132'), ['9521', '471', '32']);
+  const digits = '0'.repeat(10000);
+  const chunks = planChunks(db, digits);
+  assert.equal(chunks.join(''), digits);
+  assert.ok(chunks.every((code) => code.length >= 2 && code.length <= 4 && db.byCode[code].length > 0));
+  let state = { selected: [], remaining: '952147132' };
+  for (const word of ['planet', 'rocket', 'moon']) {
+    const code = planChunks(db, state.remaining)[0];
+    const candidate = getCandidates(db, code).find(([spelling, digits]) => spelling === word && digits === code);
+    state = chooseCandidate(state, candidate);
+  }
+  assert.equal(state.remaining, '');
+  assert.equal(formatNumber(state.selected, state.remaining), '9521 471 32');
 });
 
 test('long and zero-prefixed remainders use available prefix queries', () => {

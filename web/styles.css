@@ -41,7 +41,10 @@ h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 500; font-size
 #workspace.has-input { padding-top: 0; }
 .composer { position: relative; }
 .input-row { display: flex; align-items: stretch; gap: 0.65rem; }
-.composer > label { display: flex; align-items: center; min-height: 44px; width: fit-content; font-size: 0.875rem; font-weight: 750; }
+.composer-heading { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding-right: 5.5rem; }
+.composer-heading > label { display: flex; align-items: center; min-height: 44px; font-size: 0.875rem; font-weight: 750; }
+.composer-heading .split-toggle { gap: 0.3rem; font-size: 0.8rem; font-weight: 400; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.split-toggle input { margin: 0; accent-color: var(--progress-fill); }
 #number { width: 100%; min-width: 0; border: 1px solid #89988c; border-radius: 0.45rem; padding: 0.7rem 0.85rem; background: #fff; color: var(--ink); font-size: 1.35rem; font-family: ui-monospace, "Cascadia Code", monospace; }
 #number::placeholder { color: #737d76; }
 #number[aria-invalid="true"] { border-color: #a12834; background: #fff7f5; }
@@ -76,7 +79,11 @@ progress::-moz-progress-bar { background: var(--progress-fill); }
 .choices { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .word-choice { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; max-width: 100%; overflow-wrap: anywhere; min-height: 44px; padding: 0.4rem 0.65rem; border-radius: 0.4rem; border: 1px solid var(--line); background: var(--paper); font-size: 1.02rem; font-weight: 400; line-height: 1.5; color: var(--ink); text-align: left; }
 .word-choice:hover { background: #eef2e9; border-color: #7c937d; }
+.word-choice.recommended { background: #e6efe0; border-color: #9bae94; }
+.word-choice.recommended:hover { background: #dbe7d3; border-color: #7c937d; }
+.word-details { display: flex; flex-wrap: wrap; gap: 0 0.5rem; }
 .word-grammar { color: var(--muted); font-size: 0.68rem; margin-top: 0.1rem; }
+.word-recommendation { color: var(--muted); font-size: 0.68rem; margin-top: 0.1rem; }
 .error { border-left: 3px solid #a12834; color: #8e2430; padding: 0.65rem 0.9rem; background: #fff1ee; margin-block: 1rem; font-size: 0.9rem; overflow-wrap: anywhere; }
 .site-footer { margin-top: 3rem; padding-block: 1.5rem 2.5rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.75rem; }
 .site-footer p { margin-bottom: 0.4rem; }
