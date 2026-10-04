@@ -126,10 +126,11 @@
       numbers you want to recall quickly. The word builder looks up words whose
       sounds match the digits, so you can encode any number without
       preparation. PAO instead relies on a table you prepare and learn ahead of
-      time. It gives every pair from 00 to 99 three associations: a person, an
-      action, and an object. A number is then read two digits at a time. The
-      first pair supplies a person, the second an action, and the third an
-      object. Together they make one scene, and the next pair starts another.</p>
+      time. Its 110 rows give every single digit from 0 to 9 and every pair
+      from 00 to 99 three associations: a person, an action, and an object.
+      A number is read in pairs, with one final single digit if its length is
+      odd. Each code continues the person, action, object cycle. Three codes
+      make one scene, and the next code starts another.</p>
     <div class="scene-example">
       <p><strong>327753 becomes an astronaut who frosts a lime.</strong> In
         DigitLoom's starter table, 32 has the person <em>astronaut</em>, 77 the
@@ -140,7 +141,7 @@
       <a href="pao.html">Try the starter table</a>
     </div>
     <p>Associations are personal and should stay fixed once learned. They do
-      not need to share the sounds of their pair. A table might give 88 the
+      not need to share the sounds of their code. A table might give 88 the
       person musician, 53 the action squeezes, and 66 the object defendant, so
       885366 becomes a musician who squeezes a defendant. Rehearse your table
       until each pair brings back all three associations at once; after that,
@@ -152,26 +153,30 @@
       the word library.</p>
     <h3>How the PAO page reads a number</h3>
     <p>Type digits and the scenes appear at once. Each scene card lists its
-      person, action, and object with their exact pairs. Leading zeros are
+      person, action, and object with their exact codes. Leading zeros are
       kept, spaces are ignored, and nothing is padded. If the number ends
       partway through a scene, the last scene has just a person, or a person
-      and an action. One leftover digit has no pair, so DigitLoom offers
-      ordinary one-digit words for it, as the word builder does. This ending
-      is separate from your scenes; you can choose it, undo it, or edit the
-      number to start again.</p>
+      and an action. A final single digit uses its own PAO row in the next
+      role, without resetting the cycle or adding a zero. For example,
+      <code>324</code> uses the action for <code>4</code>, <em>flails</em>;
+      <code>32774</code> uses its object, <em>his light saber</em>; and
+      <code>3277534</code> starts a new scene with its person,
+      <em>Luke Skywalks</em>. <code>0</code> and <code>00</code> are different
+      codes. No separate dictionary choice is needed.</p>
     <p>Blank associations are listed as missing. A value used for two codes in
       the same role is flagged as ambiguous, because the scene could then
       decode two ways. Each warning leads to the table cell that needs
-      attention. Progress counts only resolved pairs and a chosen ending, so a
+      attention. Progress counts two digits for a resolved pair and one for
+      a resolved single-digit code, so a
       number is not called encoded until every part is settled. Long numbers
       are encoded in full and shown fifty scenes at a time.</p>
     <h3>Make the table your own</h3>
     <p>Choose <strong>Edit table</strong> to rename the table or change any
       peg, person, action, or object. <strong>Find</strong> and
-      <strong>Show</strong> narrow the hundred codes to a word, the pairs in
-      your number, missing associations, or duplicates. <strong>Ideas</strong>
+      <strong>Show</strong> narrow the 110 codes to a word, single digits,
+      pairs, codes in your number, missing associations, or duplicates. <strong>Ideas</strong>
       beside a peg opens the dictionary and lists the words whose sounds encode
-      exactly that pair, with green backgrounds for common words. A change
+      exactly that code, with green backgrounds for common words. A change
       applies to every number you encode with the table.</p>
     <p>Your table lives only in the open tab. DigitLoom does not save it in
       your browser or send it anywhere, so use <strong>Export table</strong> to
@@ -181,6 +186,13 @@
       table</strong> starts from scratch and <strong>Restore starter</strong>
       brings back DigitLoom's example. Before replacing changes you have not
       exported, DigitLoom asks first.</p>
+    <p>Older 100-row table files still import. Their pair associations and
+      attribution stay intact; the new single-digit rows start blank for you
+      to fill. The current starter uses contributed single-digit associations.
+      To avoid collisions, its generated person for 14 is now
+      <em>woodpecker</em>, its action for 37 is <em>brews</em>, and its action
+      for 99 is <em>gnaws</em>. Imported tables are never changed to match
+      those starter choices.</p>
     <h2>Local by design</h2>
     <p>DigitLoom downloads its dictionary once and does the matching in your
       browser. Your numbers and selected words are not sent to a service or

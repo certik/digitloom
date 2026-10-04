@@ -1,10 +1,20 @@
 {
   "format": "digitloom-pao",
-  "version": 1,
+  "version": 2,
   "name": "DigitLoom starter PAO",
   "license": "CC-BY-SA-4.0",
-  "attribution": "DigitLoom starter PAO by DigitLoom contributors, with pegs chosen from the DigitLoom CMUdict-derived dictionary. Sources and licenses: https://certik.github.io/digitloom/sources.html",
+  "attribution": "DigitLoom starter PAO by DigitLoom contributors, including single-digit associations supplied in contributor feedback. Pegs are from the DigitLoom CMUdict-derived dictionary. Sources and licenses: https://certik.github.io/digitloom/sources.html",
   "entries": [
+    { "code": "0", "peg": "saw", "person": "lumberjack", "action": "saws", "object": "log" },
+    { "code": "1", "peg": "tea", "person": "Miss Marple", "action": "pours", "object": "tea" },
+    { "code": "2", "peg": "noah", "person": "Noah", "action": "counts", "object": "animals" },
+    { "code": "3", "peg": "me", "person": "I", "action": "tie", "object": "a bow-tie (in a mirror)" },
+    { "code": "4", "peg": "ray", "person": "Luke Skywalks", "action": "flails", "object": "his light saber" },
+    { "code": "5", "peg": "law", "person": "Cop", "action": "stops", "object": "a Toyota" },
+    { "code": "6", "peg": "jaw", "person": "Lurch", "action": "chews", "object": "rose stems" },
+    { "code": "7", "peg": "key", "person": "Alladin", "action": "turns", "object": "a key (in a rusty lock to the treasure-room door)" },
+    { "code": "8", "peg": "fee", "person": "My lawyer", "action": "hoards", "object": "his fee" },
+    { "code": "9", "peg": "pea", "person": "A Pea", "action": "bruises", "object": "the Princess (through nine matresses)" },
     { "code": "00", "peg": "zeus", "person": "Zeus", "action": "hurls", "object": "lightning bolt" },
     { "code": "01", "peg": "suit", "person": "tailor", "action": "irons", "object": "pinstripe suit" },
     { "code": "02", "peg": "santa", "person": "Santa Claus", "action": "wraps", "object": "gift" },
@@ -19,7 +29,7 @@
     { "code": "11", "peg": "tooth", "person": "dentist", "action": "flosses", "object": "crocodile" },
     { "code": "12", "peg": "ton", "person": "weightlifter", "action": "lifts", "object": "barbell" },
     { "code": "13", "peg": "tomb", "person": "archaeologist", "action": "unearths", "object": "mummy" },
-    { "code": "14", "peg": "tree", "person": "lumberjack", "action": "chops", "object": "firewood" },
+    { "code": "14", "peg": "tree", "person": "woodpecker", "action": "chops", "object": "firewood" },
     { "code": "15", "peg": "hotel", "person": "bellhop", "action": "juggles", "object": "suitcase" },
     { "code": "16", "peg": "dj", "person": "DJ", "action": "scratches", "object": "vinyl record" },
     { "code": "17", "peg": "doc", "person": "doctor", "action": "bandages", "object": "teddy bear" },
@@ -42,7 +52,7 @@
     { "code": "34", "peg": "mayor", "person": "mayor", "action": "unveils", "object": "statue" },
     { "code": "35", "peg": "mail", "person": "mail carrier", "action": "delivers", "object": "package" },
     { "code": "36", "peg": "match", "person": "tennis player", "action": "serves", "object": "tennis ball" },
-    { "code": "37", "peg": "mug", "person": "barista", "action": "pours", "object": "latte" },
+    { "code": "37", "peg": "mug", "person": "barista", "action": "brews", "object": "latte" },
     { "code": "38", "peg": "movie", "person": "movie star", "action": "autographs", "object": "poster" },
     { "code": "39", "peg": "mop", "person": "janitor", "action": "mops", "object": "puddle" },
     { "code": "40", "peg": "rose", "person": "gardener", "action": "prunes", "object": "rosebush" },
@@ -104,6 +114,6 @@
     { "code": "96", "peg": "pouch", "person": "kangaroo", "action": "boxes with", "object": "punching bag" },
     { "code": "97", "peg": "book", "person": "librarian", "action": "shushes", "object": "alarm clock" },
     { "code": "98", "peg": "puff", "person": "dragon", "action": "guards", "object": "castle" },
-    { "code": "99", "peg": "puppy", "person": "puppy", "action": "chews", "object": "slipper" }
+    { "code": "99", "peg": "puppy", "person": "puppy", "action": "gnaws", "object": "slipper" }
   ]
 }

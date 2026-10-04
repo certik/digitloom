@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="DigitLoom turns digit pairs into person, action, and object scenes with an editable PAO table that stays in your browser.">
+  <meta name="description" content="DigitLoom turns numbers into person, action, and object scenes with an editable 110-code PAO table that stays in your browser.">
   <meta name="theme-color" content="#f7f5f0">
   <title>PAO scenes - DigitLoom</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css?v=5">
-  <link rel="stylesheet" href="pao.css">
+  <link rel="stylesheet" href="pao.css?v=2">
 </head>
 <body>
   <a class="skip-link" href="#pao-workspace">Skip to the PAO encoder</a>
@@ -23,7 +23,7 @@
     <span id="github-link-hint" class="visually-hidden">External site</span>
   </header>
   <main class="page pao-page" id="pao-workspace">
-    <h1 class="visually-hidden">Turn number pairs into person, action, object scenes</h1>
+    <h1 class="visually-hidden">Turn numbers into person, action, object scenes</h1>
     <section class="composer pao-composer" aria-label="PAO encoder">
       <div class="composer-heading pao-composer-heading">
         <label for="pao-number">Your number</label>
@@ -34,7 +34,7 @@
           placeholder="Try 327753" aria-describedby="pao-number-hint pao-input-error" disabled>
         <button id="pao-clear" class="button secondary" type="button" disabled>Clear</button>
       </div>
-      <p class="pao-hint" id="pao-number-hint">Each pair of digits becomes a person, an action, then an object. Three pairs make one scene. Spaces are ignored and leading zeros count.</p>
+      <p class="pao-hint" id="pao-number-hint">Read pairs, then a final single digit if one remains. Each code continues person, action, object; three codes make a scene. Leading zeros count: 0 and 00 are different codes.</p>
       <p class="pao-table-line"><span id="table-in-use"></span> <a href="guide.html#pao">How PAO works</a></p>
       <p id="pao-input-error" class="error" role="alert" hidden></p>
       <p id="table-load-status" class="pao-status" role="status">Opening the starter table...</p>
@@ -60,20 +60,6 @@
       <p id="scene-count" class="scene-count" hidden></p>
       <ol id="pao-scenes" class="pao-scenes" aria-label="Scenes"></ol>
       <button id="more-scenes" class="button secondary more-scenes" type="button" hidden></button>
-      <section id="pao-tail" class="pao-tail" aria-labelledby="tail-title" hidden>
-        <h3 id="tail-title">Final digit</h3>
-        <p class="tail-note">PAO works in pairs, so one leftover digit gets an ordinary major-system word. It is a separate ending, not part of a scene.</p>
-        <div id="tail-chosen" class="tail-chosen" hidden>
-          <p class="tail-result"><span class="tail-label">Ending</span> <span id="tail-word" class="tail-word"></span> <span id="tail-code" class="tail-code"></span></p>
-          <button id="undo-tail" class="button secondary" type="button">Undo ending</button>
-        </div>
-        <p id="tail-status" class="pao-status" role="status"></p>
-        <div id="tail-error" class="error pao-load-error" role="alert" hidden>
-          <p id="tail-error-text"></p>
-          <button id="tail-retry" class="button secondary" type="button">Try again</button>
-        </div>
-        <div id="tail-options"></div>
-      </section>
     </section>
 
     <section class="pao-table" id="pao-table" aria-labelledby="table-title">
@@ -92,7 +78,7 @@
       <p id="table-message" class="table-message" role="status"></p>
       <p id="table-error" class="error" role="alert" hidden></p>
       <details id="table-editor" class="table-editor" hidden>
-        <summary>Edit codes 00&ndash;99</summary>
+        <summary>Edit 110 codes: 0&ndash;9 and 00&ndash;99</summary>
         <div class="editor-body">
           <div class="editor-meta">
             <div class="name-field">
@@ -107,6 +93,7 @@
             </dl>
           </div>
           <p class="editor-note">Each association belongs to its code, so a change here applies to every number you encode with this table. Associations are personal: they do not need to share the peg's sounds, people can be animals or characters, and objects can be people.</p>
+          <p class="editor-note">Single-digit rows are separate from the pairs: 0 is not 00. Older 100-row imports keep their pair associations and add blank single-digit rows for you to fill in.</p>
           <div class="editor-filters">
             <div class="filter-field">
               <label for="table-search">Find</label>
@@ -116,6 +103,8 @@
               <label for="table-filter">Show</label>
               <select id="table-filter">
                 <option value="all">All codes</option>
+                <option value="single">Single-digit codes</option>
+                <option value="pairs">Two-digit codes</option>
                 <option value="number">Codes in your number</option>
                 <option value="missing">Missing associations</option>
                 <option value="duplicates">Duplicates</option>
@@ -148,6 +137,6 @@
     </form>
   </dialog>
   <footer class="site-footer"><p>DigitLoom. Your PAO table stays in this tab; export it to keep a copy.</p></footer>
-  <script type="module" src="pao.js?v=5"></script>
+  <script type="module" src="pao.js?v=2"></script>
 </body>
 </html>
