@@ -1,8 +1,8 @@
 import { loadDictionary } from './dictionary.js?v=5';
-import { getCandidates, isCommonWord, normalizeInput, partOfSpeechLabel } from './logic.js?v=5';
+import { isCommonWord, normalizeInput, partOfSpeechLabel } from './logic.js?v=5';
 import {
-  PAO_ROLES, PROFILE_LIMITS, createBlankProfile, encodePao, findDuplicates, parseProfile, serializeProfile
-} from './pao-logic.js';
+  PAO_ROLES, PAO_VERSION, PROFILE_LIMITS, createBlankProfile, encodePao, findDuplicates, parseProfile, serializeProfile
+} from './pao-logic.js?v=2';
 
 const SCENES_PER_PAGE = 50;
 const ISSUE_PREVIEW = 8;
@@ -34,17 +34,6 @@ const issuesMore = byId('pao-issues-more');
 const sceneCount = byId('scene-count');
 const sceneList = byId('pao-scenes');
 const moreScenes = byId('more-scenes');
-const tailSection = byId('pao-tail');
-const tailTitle = byId('tail-title');
-const tailChosen = byId('tail-chosen');
-const tailWord = byId('tail-word');
-const tailCode = byId('tail-code');
-const undoTail = byId('undo-tail');
-const tailStatus = byId('tail-status');
-const tailError = byId('tail-error');
-const tailErrorText = byId('tail-error-text');
-const tailRetry = byId('tail-retry');
-const tailOptions = byId('tail-options');
 const tableSummary = byId('table-summary');
 const newTable = byId('new-table');
 const restoreStarter = byId('restore-starter');
@@ -70,6 +59,7 @@ const replaceText = byId('replace-text');
 
 // The working table exists only in memory; savedState marks its last opened or exported form.
 let profile = null;
+let profileRows = new Map();
 let savedState = '';
 let starterText = null;
 let starterLoading = false;
@@ -79,8 +69,6 @@ let tableOperation = 0;
 let digits = '';
 let inputProblem = '';
 let result = null;
-let tail = null;
-let allEndings = false;
 let sceneLimit = SCENES_PER_PAGE;
 let allIssues = false;
 let duplicates = [];
@@ -136,9 +124,6 @@ function requestDictionary({ retry = false } = {}) {
     .then((loaded) => { dictionary = loaded; }, (failure) => { dictionaryFailure = sentence(failure.message); })
     .finally(() => {
       dictionaryPromise = null;
-      const waitingForEnding = document.activeElement === tailStatus;
-      renderTail();
-      if (waitingForEnding) (tailOptions.querySelector('button') ?? (tailError.hidden ? tailStatus : tailRetry)).focus();
       renderIdeas();
     });
 }
@@ -173,7 +158,7 @@ function updateTableSummary(dirty = isDirty()) {
   const name = document.createElement('span');
   name.className = 'table-name';
   name.textContent = displayName();
-  const details = [`${countComplete()} of 100 codes complete`];
+  const details = [`${countComplete()} of ${profile.entries.length} codes complete`];
   if (duplicates.length) details.push(plural(duplicates.length, 'duplicate'));
   details.push(dirty ? 'changes not exported' : 'no unexported changes');
   tableSummary.replaceChildren(name, ` \u00b7 ${details.join(' \u00b7 ')}`);
@@ -242,7 +227,7 @@ function scheduleOutput() {
 
 function exampleHint() {
   const sample = [['32', 'person'], ['77', 'action'], ['53', 'object']]
-    .map(([code, role]) => profile.entries[Number(code)][role]);
+    .map(([code, role]) => profileRows.get(code)[role]);
   if (sample.every((value) => !isBlank(value))) return `Try 327753: ${sample.map((value) => value.trim()).join(' / ')}.`;
   return 'Type a number to see its scenes and which associations they still need.';
 }
@@ -257,12 +242,9 @@ function renderOutput() {
   output.hidden = !ready;
   if (!ready) return;
 
-  const pairs = result?.pairCount ?? 0;
-  const resolved = result?.resolvedPairCount ?? 0;
   const issues = result?.issues ?? [];
-  const trailing = result?.trailingDigit ?? '';
-  const encoded = resolved * 2 + (trailing && tail ? 1 : 0);
-  const complete = total > 0 && resolved === pairs && !issues.length && (!trailing || Boolean(tail));
+  const encoded = result?.encodedDigits ?? 0;
+  const complete = total > 0 && encoded === total && !issues.length;
 
   progressRow.hidden = total === 0;
   progressBar.max = Math.max(total, 1);
@@ -272,21 +254,19 @@ function renderOutput() {
   if (inputProblem) stepTitle.textContent = 'Check your number';
   else if (!total) stepTitle.textContent = 'Type digits to begin';
   else if (complete) stepTitle.textContent = 'Your number is encoded.';
-  else if (issues.length) stepTitle.textContent = `${formatCount(issues.length)} ${issues.length === 1 ? 'association needs' : 'associations need'} attention`;
-  else stepTitle.textContent = 'Choose a word for the final digit';
+  else stepTitle.textContent = `${formatCount(issues.length)} ${issues.length === 1 ? 'association needs' : 'associations need'} attention`;
 
   emptyHint.hidden = total > 0 && !inputProblem;
   emptyHint.textContent = inputProblem ? 'Replace letters or punctuation with digits to see your scenes.' : exampleHint();
   renderIssues();
   renderScenes();
-  renderTail();
 }
 
 function issueText(issue) {
   if (issue.kind === 'missing') return `No ${issue.role} for ${issue.code} yet.`;
   const group = duplicateCells.get(cellKey(issue.role, issue.code));
   if (!group) return sentence(issue.message);
-  const value = profile.entries[Number(issue.code)][issue.role].trim();
+  const value = profileRows.get(issue.code)[issue.role].trim();
   const others = group.codes.filter((code) => code !== issue.code);
   return `${LABELS[issue.role]} ${quoted(value)} is also the ${issue.role} for ${listCodes(others)}, so ${issue.code} is ambiguous.`;
 }
@@ -325,6 +305,7 @@ function slotItem(slot) {
   const code = document.createElement('span');
   code.className = 'slot-code';
   code.textContent = slot.code;
+  code.title = slot.code.length === 1 ? 'Single-digit PAO code' : 'Two-digit PAO code';
   term.append(role, ' ', code);
   const detail = document.createElement('dd');
   if (isBlank(slot.value)) {
@@ -365,10 +346,10 @@ function sceneItem(scene) {
   title.className = 'scene-title';
   const name = document.createElement('span');
   name.textContent = `Scene ${formatCount(scene.number)}`;
-  const pairs = document.createElement('span');
-  pairs.className = 'scene-digits';
-  pairs.append(hiddenText('pairs '), scene.slots.map((slot) => slot.code).join(' '));
-  title.append(name, ' ', pairs);
+  const codes = document.createElement('span');
+  codes.className = 'scene-digits';
+  codes.append(hiddenText('codes '), scene.slots.map((slot) => slot.code).join(' '));
+  title.append(name, ' ', codes);
   const slots = document.createElement('dl');
   slots.className = 'scene-slots';
   for (const slot of scene.slots) slots.append(slotItem(slot));
@@ -377,9 +358,7 @@ function sceneItem(scene) {
     const note = document.createElement('p');
     note.className = 'scene-note';
     const absent = PAO_ROLES.slice(scene.slots.length).join(' or ');
-    note.textContent = result?.trailingDigit
-      ? `One digit remains after this pair, so this scene has no ${absent}. That digit gets its own ending below.`
-      : `The number ends here, so this scene has no ${absent}.`;
+    note.textContent = `The number ends here, so this scene has no ${absent}.`;
     item.append(note);
   }
   return item;
@@ -392,8 +371,8 @@ function renderScenes() {
   sceneList.hidden = scenes.length === 0;
   sceneCount.hidden = scenes.length === 0;
   sceneCount.textContent = shown < scenes.length
-    ? `Showing scenes 1\u2013${formatCount(shown)} of ${formatCount(scenes.length)}, from ${plural(result.pairCount, 'pair')}.`
-    : `${plural(scenes.length, 'scene')} from ${plural(result?.pairCount ?? 0, 'pair')}.`;
+    ? `Showing scenes 1\u2013${formatCount(shown)} of ${formatCount(scenes.length)}, from ${plural(result.codeCount, 'code')}.`
+    : `${plural(scenes.length, 'scene')} from ${plural(result?.codeCount ?? 0, 'code')}.`;
   const next = Math.min(SCENES_PER_PAGE, scenes.length - shown);
   moreScenes.hidden = next <= 0;
   moreScenes.textContent = `Show ${plural(next, 'more scene', 'more scenes')}`;
@@ -435,88 +414,6 @@ function wordButton([word, code, pos, frequency], index, label, idPrefix, onChoo
   return button;
 }
 
-function renderTail() {
-  const digit = result?.trailingDigit ?? '';
-  tailSection.hidden = !digit;
-  if (!digit) {
-    tailOptions.replaceChildren();
-    delete tailOptions.dataset.digit;
-    return;
-  }
-  tailTitle.textContent = `Final digit ${digit}`;
-  tailChosen.hidden = !tail;
-  if (tail) {
-    tailWord.textContent = tail[0];
-    tailCode.textContent = tail[1];
-    tailStatus.textContent = '';
-    tailError.hidden = true;
-    tailOptions.replaceChildren();
-    delete tailOptions.dataset.digit;
-    return;
-  }
-  if (!dictionary) {
-    requestDictionary();
-    tailStatus.textContent = dictionaryFailure ? '' : 'Opening the word library...';
-    tailError.hidden = !dictionaryFailure;
-    tailErrorText.textContent = dictionaryFailure ? dictionaryProblem() : '';
-    tailOptions.replaceChildren();
-    delete tailOptions.dataset.digit;
-    return;
-  }
-  tailStatus.textContent = '';
-  tailError.hidden = true;
-  const view = `${digit}:${allEndings}`;
-  if (tailOptions.dataset.digit === view) return;
-  tailOptions.dataset.digit = view;
-  const candidates = getCandidates(dictionary, digit);
-  if (!candidates.length) {
-    const empty = document.createElement('p');
-    empty.className = 'empty-options';
-    empty.textContent = `This dictionary has no one-digit word for ${digit}. The final digit stays unencoded.`;
-    tailOptions.replaceChildren(empty);
-    return;
-  }
-  const group = document.createElement('section');
-  group.className = 'word-group';
-  const header = document.createElement('header');
-  header.className = 'group-heading';
-  const title = document.createElement('h4');
-  title.id = 'tail-length';
-  title.textContent = '1-digit words';
-  group.setAttribute('aria-labelledby', title.id);
-  const detail = document.createElement('p');
-  detail.textContent = `${digit} / ${plural(candidates.length, 'choice')}`;
-  header.append(title, detail);
-  const choices = document.createElement('div');
-  choices.className = 'choices';
-  const shown = allEndings ? candidates : candidates.slice(0, IDEA_PREVIEW);
-  shown.forEach((entry, index) => {
-    choices.append(wordButton(entry, index, `Choose ${entry[0]} (${entry[1]})`, 'tail', () => chooseTail(entry)));
-  });
-  group.append(header, choices);
-  if (candidates.length > IDEA_PREVIEW) {
-    const more = document.createElement('button');
-    more.type = 'button';
-    more.className = 'text-button tail-more';
-    more.textContent = allEndings ? 'Show fewer words' : `Show all ${formatCount(candidates.length)} words`;
-    more.setAttribute('aria-expanded', String(allEndings));
-    more.addEventListener('click', () => {
-      allEndings = !allEndings;
-      renderTail();
-      const words = tailOptions.querySelectorAll('.word-choice');
-      (allEndings ? words[IDEA_PREVIEW] : tailOptions.querySelector('.tail-more'))?.focus();
-    });
-    group.append(more);
-  }
-  tailOptions.replaceChildren(group);
-}
-
-function chooseTail(entry) {
-  tail = entry;
-  renderOutput();
-  undoTail.focus();
-}
-
 function renderIdeas() {
   const panel = openIdeas ? byId(`pao-ideas-${openIdeas}`) : null;
   if (!panel) return;
@@ -543,7 +440,6 @@ function fillIdeas(panel, code) {
       retry.addEventListener('click', () => {
         requestDictionary({ retry: true });
         renderIdeas();
-        renderTail();
         byId(`pao-ideas-${code}`)?.querySelector('[role="status"]')?.focus();
       });
       problem.append(text, retry);
@@ -629,7 +525,7 @@ function usePeg(code, word) {
   if (!profile) return;
   const input = byId(cellId(code, 'peg'));
   input.value = word;
-  profile.entries[Number(code)].peg = word;
+  profileRows.get(code).peg = word;
   closeIdeas();
   tableEdited();
   input.focus();
@@ -747,7 +643,7 @@ function refreshDuplicates() {
 function numberCodes() {
   const codes = new Set();
   if (!inputProblem) {
-    for (let offset = 0; offset + 1 < digits.length; offset += 2) codes.add(digits.slice(offset, offset + 2));
+    for (let offset = 0; offset < digits.length; offset += 2) codes.add(digits.slice(offset, offset + 2));
   }
   return codes;
 }
@@ -763,6 +659,8 @@ function applyFilter() {
       FIELDS.some((field) => fold(entry[field]).includes(query));
     let matchesMode = true;
     if (mode === 'number') matchesMode = wanted.has(entry.code);
+    else if (mode === 'single') matchesMode = entry.code.length === 1;
+    else if (mode === 'pairs') matchesMode = entry.code.length === 2;
     else if (mode === 'missing') matchesMode = PAO_ROLES.some((role) => isBlank(entry[role]));
     else if (mode === 'duplicates') matchesMode = PAO_ROLES.some((role) => duplicateCells.has(cellKey(role, entry.code)));
     const row = rowElements.get(entry.code);
@@ -807,6 +705,7 @@ function validateName() {
 
 function useProfile(next) {
   profile = next;
+  profileRows = new Map(profile.entries.map((entry) => [entry.code, entry]));
   savedState = snapshot();
   loadFailure = '';
   tableName.value = profile.name;
@@ -823,7 +722,7 @@ function useProfile(next) {
 
 async function fetchStarter() {
   if (starterText === null) {
-    const response = await fetch(new URL('./data/pao-starter.json', import.meta.url));
+    const response = await fetch(new URL(`./data/pao-starter.json?v=${PAO_VERSION}`, import.meta.url));
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const text = decodeText(await response.arrayBuffer());
     parseProfile(text);
@@ -889,7 +788,7 @@ function confirmReplace(replacement) {
 
 function importSummary(next) {
   const complete = next.entries.filter((entry) => PAO_ROLES.every((role) => !isBlank(entry[role]))).length;
-  const parts = [`Imported ${quoted(isBlank(next.name) ? 'Untitled table' : next.name)}: ${complete} of 100 codes complete.`];
+  const parts = [`Imported ${quoted(isBlank(next.name) ? 'Untitled table' : next.name)}: ${complete} of ${next.entries.length} codes complete.`];
   if (duplicates.length) parts.push(`${plural(duplicates.length, 'duplicate value')} to review in the editor.`);
   return parts.join(' ');
 }
@@ -1009,8 +908,6 @@ number.addEventListener('input', () => {
   const parsed = normalizeInput(number.value);
   inputProblem = parsed.error;
   digits = parsed.ok ? parsed.digits : '';
-  tail = null;
-  allEndings = false;
   sceneLimit = SCENES_PER_PAGE;
   allIssues = false;
   encodeAndRender();
@@ -1021,25 +918,11 @@ clearButton.addEventListener('click', () => {
   number.value = '';
   inputProblem = '';
   digits = '';
-  tail = null;
-  allEndings = false;
   sceneLimit = SCENES_PER_PAGE;
   allIssues = false;
   encodeAndRender();
   if (filter.value === 'number') applyFilter();
   number.focus();
-});
-
-undoTail.addEventListener('click', () => {
-  tail = null;
-  renderOutput();
-  (tailOptions.querySelector('button') ?? number).focus();
-});
-
-tailRetry.addEventListener('click', () => {
-  requestDictionary({ retry: true });
-  renderTail();
-  tailStatus.focus();
 });
 
 moreScenes.addEventListener('click', () => {
@@ -1078,7 +961,7 @@ rows.addEventListener('input', (event) => {
   if (!profile || !field) return;
   const clean = input.value.replace(CONTROLS, ' ');
   if (clean !== input.value) input.value = clean;
-  profile.entries[Number(input.dataset.code)][field] = input.value;
+  profileRows.get(input.dataset.code)[field] = input.value;
   tableEdited();
 });
 
@@ -1100,6 +983,5 @@ search.addEventListener('input', applyFilter);
 filter.addEventListener('change', applyFilter);
 
 loadStatus.tabIndex = -1;
-tailStatus.tabIndex = -1;
 tableName.maxLength = PROFILE_LIMITS.name;
 openStarter();

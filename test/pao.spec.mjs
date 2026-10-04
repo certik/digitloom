@@ -1,13 +1,15 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
-import { PROFILE_LIMITS, encodePao, findDuplicates, parseProfile } from '../web/pao-logic.js';
+import { PAO_CODES, PROFILE_LIMITS, encodePao, findDuplicates, parseProfile } from '../web/pao-logic.js';
 import { isCommonWord } from '../web/logic.js';
 
 const problems = new WeakMap();
 const allowedOrigins = new Set(['http://127.0.0.1:4173', 'http://127.0.0.1:4174']);
 const starter = parseProfile(await readFile(new URL('../web/data/pao-starter.json', import.meta.url), 'utf8'));
 const dictionary = JSON.parse(await readFile(new URL('../web/data/db.json', import.meta.url)));
-const codes = Array.from({ length: 100 }, (_, index) => String(index).padStart(2, '0'));
+const codes = [...PAO_CODES];
+const pairCodes = codes.filter((code) => code.length === 2);
+const entry = (profile, code) => profile.entries.find((row) => row.code === code);
 const roles = ['person', 'action', 'object'];
 const complete = (profile) => profile.entries.filter((entry) => roles.every((role) => entry[role].trim())).length;
 
@@ -67,7 +69,9 @@ function countStarterBodies() {
   window.starterBodies = 0;
   Response.prototype.arrayBuffer = function arrayBuffer() {
     return read.call(this).then((buffer) => {
-      if (this.url.endsWith('/data/pao-starter.json')) setTimeout(() => { window.starterBodies += 1; }, 0);
+      if (this.url && new URL(this.url).pathname.endsWith('/data/pao-starter.json')) {
+        setTimeout(() => { window.starterBodies += 1; }, 0);
+      }
       return buffer;
     });
   };
@@ -78,7 +82,7 @@ const chooseImport = (page, name, content) => page.locator('#import-file').setIn
 const namedTable = (name) => ({
   format: 'digitloom-pao', version: 1, name, entries: [{ code: '32', person: `${name} person`, action: 'waves', object: 'flag' }]
 });
-const importedMessage = (name) => `Imported \u201c${name}\u201d: 1 of 100 codes complete.`;
+const importedMessage = (name) => `Imported \u201c${name}\u201d: 1 of 110 codes complete.`;
 const usingTable = (name) => `Using table \u201c${name}\u201d.`;
 const blankMessage = 'Started a new blank table. Name it, fill in the codes you need, and export it to keep it.';
 
@@ -137,8 +141,9 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/*', (route) => {
     const request = route.request();
     const url = new URL(request.url());
-    const versionedAsset = url.search === '?v=5' &&
-      /\/(?:app\.js|pao\.js|logic\.js|dictionary\.js|styles\.css|data\/db\.(?:json|txt\.gz))$/.test(url.pathname);
+    const versionedAsset = (url.search === '?v=5' &&
+      /\/(?:app\.js|logic\.js|dictionary\.js|styles\.css|data\/db\.(?:json|txt\.gz))$/.test(url.pathname)) ||
+      (url.search === '?v=2' && /\/(?:pao(?:-logic)?\.js|pao\.css|data\/pao-starter\.json)$/.test(url.pathname));
     if (request.method() !== 'GET' || (url.search && !versionedAsset)) {
       failures.push(`Unexpected ${request.method()} request: ${request.url()}`);
     }
@@ -166,13 +171,13 @@ test('the starter table turns 327753 into astronaut / frosts / lime with labelle
   await expect(input).toHaveValue('327753');
   await expect.poll(() => sceneSlots(page)).toEqual([[['Person', '32', 'astronaut'], ['Action', '77', 'frosts'], ['Object', '53', 'lime']]]);
   const scene = page.locator('#pao-scenes > li').first();
-  await expect(scene.getByRole('heading', { level: 3 })).toHaveText('Scene 1 pairs 32 77 53');
+  await expect(scene.getByRole('heading', { level: 3 })).toHaveText('Scene 1 codes 32 77 53');
   await expect(scene.locator('.slot-peg')).toHaveText(['Peg: moon', 'Peg: cake', 'Peg: lime']);
   await expect(scene.getByRole('term')).toHaveText(['Person 32', 'Action 77', 'Object 53']);
   await expect(page.locator('#pao-step-title')).toHaveText('Your number is encoded.');
   await expect(page.locator('#pao-progress-label')).toHaveText('6 of 6 digits encoded');
   await expect(page.locator('#pao-progress-bar')).toHaveAttribute('value', '6');
-  await expect(page.locator('#scene-count')).toHaveText('1 scene from 3 pairs.');
+  await expect(page.locator('#scene-count')).toHaveText('1 scene from 3 codes.');
   await expect(page.locator('#pao-issues')).toBeHidden();
   await expect(page.locator('#pao-tail')).toBeHidden();
   await expect(page.locator('#pao-empty')).toBeHidden();
@@ -183,7 +188,7 @@ test('the starter table turns 327753 into astronaut / frosts / lime with labelle
     [['Person', '32', 'astronaut'], ['Action', '77', 'frosts'], ['Object', '53', 'lime']],
     [['Person', '88', 'musician'], ['Action', '53', 'squeezes'], ['Object', '66', 'defendant']]
   ]);
-  await expect(page.locator('#scene-count')).toHaveText('2 scenes from 6 pairs.');
+  await expect(page.locator('#scene-count')).toHaveText('2 scenes from 6 codes.');
   const typography = await page.locator('.slot-value').evaluateAll((values) => values.map((value) => {
     const style = getComputedStyle(value);
     return `${style.color} ${style.fontWeight} ${style.fontSize}`;
@@ -200,7 +205,7 @@ test('the starter table turns 327753 into astronaut / frosts / lime with labelle
   expect(new URL(page.url()).search + new URL(page.url()).hash).toBe('');
 });
 
-test('partial scenes, leading zeros, invalid input, and a separate one-digit ending keep progress honest', async ({ page }) => {
+test('single-digit PAOs continue the role cycle without padding or dictionary requests', async ({ page }) => {
   const dictionaryRequests = [];
   page.on('request', (request) => {
     const path = new URL(request.url()).pathname;
@@ -219,58 +224,31 @@ test('partial scenes, leading zeros, invalid input, and a separate one-digit end
   expect(dictionaryRequests).toEqual([]);
 
   await input.fill('32775');
-  const tail = page.getByRole('region', { name: 'Final digit 5', exact: true });
-  await expect(tail).toBeVisible();
-  await expect(tail).toContainText('PAO works in pairs');
-  await expect.poll(() => sceneSlots(page)).toEqual([[['Person', '32', 'astronaut'], ['Action', '77', 'frosts']]]);
-  await expect(page.locator('.scene-note'))
-    .toHaveText('One digit remains after this pair, so this scene has no object. That digit gets its own ending below.');
-  await expect(page.locator('#pao-step-title')).toHaveText('Choose a word for the final digit');
-  await expect(page.locator('#pao-progress-label')).toHaveText('4 of 5 digits encoded');
-  const words = dictionary.byCode['5'];
-  const [first] = words[0];
-  const firstChoice = tail.getByRole('button', { name: `Choose ${first} (5)`, exact: true });
-  await expect(firstChoice).toBeVisible();
-  await expect(tail.getByRole('heading', { name: '1-digit words', exact: true })).toBeVisible();
-  const commonEndings = words.filter(([, , frequency]) => isCommonWord(frequency)).length;
-  await expect(tail.locator('.word-spelling')).toHaveText(words.slice(0, 24).map(([word]) => word));
-  await expect(tail.locator('.recommended')).toHaveCount(Math.min(24, commonEndings));
-  await expandWords(page, tail, words.length);
-  await expect(tail.locator('.word-spelling')).toHaveText(words.map(([word]) => word));
-  await expect(tail.locator('.recommended .word-spelling')).toHaveText(words.slice(0, commonEndings).map(([word]) => word));
-  await collapseWords(page, tail, words.length);
-  await expect(tail.locator('.word-spelling')).toHaveText(words.slice(0, 24).map(([word]) => word));
-  await expect(tail.locator('.recommended')).toHaveCount(Math.min(24, commonEndings));
-  expect(dictionaryRequests).toEqual(['/web/data/db.txt.gz']);
-  await firstChoice.click();
-  await expect(page.locator('#tail-word')).toHaveText(first);
-  await expect(page.locator('#tail-code')).toHaveText('5');
+  await expect.poll(() => sceneSlots(page)).toEqual([
+    [['Person', '32', 'astronaut'], ['Action', '77', 'frosts'], ['Object', '5', 'a Toyota']]
+  ]);
+  await expect(page.locator('.scene-note')).toHaveCount(0);
   await expect(page.locator('#pao-progress-label')).toHaveText('5 of 5 digits encoded');
   await expect(page.locator('#pao-step-title')).toHaveText('Your number is encoded.');
-  await expect(button(page, 'Undo ending')).toBeFocused();
-  await expect(tail.locator('.word-choice')).toHaveCount(0);
-  await button(page, 'Undo ending').click();
-  await expect(page.locator('#tail-chosen')).toBeHidden();
-  await expect(page.locator('#pao-progress-label')).toHaveText('4 of 5 digits encoded');
-  await expect(tail.locator('.word-choice').first()).toBeFocused();
-
-  await firstChoice.click();
-  await input.focus();
-  await input.press('End');
-  await input.pressSequentially('3');
-  await expect(input).toHaveValue('327753');
-  await expect(tail).toBeHidden();
+  await expect(page.locator('#pao-tail, #undo-tail')).toHaveCount(0);
+  await input.fill('325');
+  await expect.poll(() => sceneSlots(page)).toEqual([[['Person', '32', 'astronaut'], ['Action', '5', 'stops']]]);
+  await expect(page.locator('#pao-progress-label')).toHaveText('3 of 3 digits encoded');
+  await input.fill('3277535');
+  await expect.poll(() => sceneSlots(page)).toEqual([
+    [['Person', '32', 'astronaut'], ['Action', '77', 'frosts'], ['Object', '53', 'lime']],
+    [['Person', '5', 'Cop']]
+  ]);
+  await expect(page.locator('#pao-progress-label')).toHaveText('7 of 7 digits encoded');
   await input.press('Backspace');
-  await expect(tail).toBeVisible();
-  await expect(page.locator('#tail-chosen')).toBeHidden();
-  await expect(firstChoice).toBeVisible();
-  await expect(page.locator('#pao-progress-label')).toHaveText('4 of 5 digits encoded');
+  await expect(page.locator('.slot-code')).toHaveText(['32', '77', '53']);
+  await input.pressSequentially('0');
+  await expect(page.locator('.slot-code')).toHaveText(['32', '77', '53', '0']);
+  await expect(page.locator('.slot-value').last()).toHaveText('lumberjack');
 
-  await firstChoice.click();
   await button(page, 'Clear').click();
   await expect(input).toHaveValue('');
   await expect(input).toBeFocused();
-  await expect(tail).toBeHidden();
   await expect(page.locator('#pao-scenes > li')).toHaveCount(0);
   await expect(page.locator('#pao-progress')).toBeHidden();
   await expect(page.locator('#pao-step-title')).toHaveText('Type digits to begin');
@@ -278,10 +256,10 @@ test('partial scenes, leading zeros, invalid input, and a separate one-digit end
   await expect(page.locator('#table-in-use')).toHaveText('Using table \u201cDigitLoom starter PAO\u201d.');
   await expect(cell(page, 'Person', '32')).toHaveValue('astronaut');
   await input.fill('5');
-  await expect(tail).toBeVisible();
-  await expect(page.locator('#tail-chosen')).toBeHidden();
-  await expect(page.locator('#pao-scenes > li')).toHaveCount(0);
-  await expect(page.locator('#pao-progress-label')).toHaveText('0 of 1 digits encoded');
+  await expect.poll(() => sceneSlots(page)).toEqual([[['Person', '5', 'Cop']]]);
+  await expect(page.locator('#pao-progress-label')).toHaveText('1 of 1 digits encoded');
+  await input.fill('05');
+  await expect.poll(() => sceneSlots(page)).toEqual([[['Person', '05', 'circus seal']]]);
 
   await input.fill('12a');
   await expect(input).toHaveAttribute('aria-invalid', 'true');
@@ -290,37 +268,124 @@ test('partial scenes, leading zeros, invalid input, and a separate one-digit end
   await expect(page.locator('#pao-empty')).toHaveText('Replace letters or punctuation with digits to see your scenes.');
   await expect(page.locator('#pao-scenes > li')).toHaveCount(0);
   await expect(page.locator('#pao-progress')).toBeHidden();
-  await expect(tail).toBeHidden();
   await expect(input).toHaveValue('12a');
-  expect(dictionaryRequests).toEqual(['/web/data/db.txt.gz']);
+  expect(dictionaryRequests).toEqual([]);
+});
+
+test('all ten single-digit rows can supply a person, action, or object', async ({ page }) => {
+  await openPao(page);
+  for (const code of codes.filter((value) => value.length === 1)) {
+    for (const [index, prefix] of ['', '32', '3277'].entries()) {
+      const digits = prefix + code;
+      await numberInput(page).fill(digits);
+      const slot = page.locator('#pao-scenes .slot').last();
+      await expect(slot.locator('.slot-code')).toHaveText(code);
+      await expect(slot.locator('.slot-role')).toHaveText(['Person', 'Action', 'Object'][index]);
+      await expect(slot.locator('.slot-value')).toHaveText(entry(starter, code)[roles[index]]);
+      await expect(slot.locator('.slot-code')).toHaveAttribute('title', 'Single-digit PAO code');
+      await expect(page.locator('#pao-progress-label')).toHaveText(`${digits.length} of ${digits.length} digits encoded`);
+    }
+  }
+  await expect(page.locator('#pao-tail, #undo-tail')).toHaveCount(0);
+});
+
+test('single-digit and pair rows can be filtered and edited without colliding', async ({ page }) => {
+  await openPao(page);
+  await button(page, 'Edit table').click();
+  const show = page.getByLabel('Show', { exact: true });
+  await show.selectOption('single');
+  await expect(page.locator('.pao-row:visible .row-code')).toHaveText(codes.slice(0, 10));
+  await expect(page.locator('#filter-count')).toHaveText('Showing 10 of 110 codes');
+  await cell(page, 'Person', '0').fill('forest worker');
+  await expect(cell(page, 'Person', '00')).toHaveValue('Zeus');
+  await show.selectOption('pairs');
+  await expect(page.locator('.pao-row:visible .row-code')).toHaveText(pairCodes);
+  await expect(page.locator('#filter-count')).toHaveText('Showing 100 of 110 codes');
+  await cell(page, 'Person', '00').fill('storm god');
+  await expect(cell(page, 'Person', '0')).toHaveValue('forest worker');
+  await numberInput(page).fill('0');
+  await expect.poll(() => sceneSlots(page)).toEqual([[['Person', '0', 'forest worker']]]);
+  await numberInput(page).fill('004');
+  await expect.poll(() => sceneSlots(page)).toEqual([[['Person', '00', 'storm god'], ['Action', '4', 'flails']]]);
+  await numberInput(page).fill('0004');
+  await expect.poll(() => sceneSlots(page)).toEqual([[['Person', '00', 'storm god'], ['Action', '04', 'unclogs']]]);
+  await show.selectOption('number');
+  await numberInput(page).fill('000');
+  await expect(page.locator('.pao-row:visible .row-code')).toHaveText(['0', '00']);
+  await show.selectOption('all');
+  await cell(page, 'Person', '0').fill('woodpecker');
+  await numberInput(page).fill('0');
+  await expect(page.locator('#pao-progress-label')).toHaveText('0 of 1 digits encoded');
+  await expect(page.locator('#pao-issue-list')).toContainText('also the person for 14');
+  await button(page, 'Edit person for 0').click();
+  await expect(cell(page, 'Person', '0')).toBeFocused();
+  await cell(page, 'Person', '0').fill('forest worker');
+  await expect(page.locator('#pao-progress-label')).toHaveText('1 of 1 digits encoded');
+  await expect(cell(page, 'Person', '14')).toHaveValue('woodpecker');
+  await expect(cell(page, 'Person', '00')).toHaveValue('storm god');
+});
+
+test('legacy 100-row imports keep their mappings and add editable blank singles', async ({ page }) => {
+  await openPao(page);
+  const legacy = {
+    ...structuredClone(starter), version: 1, name: 'Legacy table',
+    license: 'CC0-1.0', attribution: 'Legacy attribution',
+    entries: structuredClone(starter.entries.filter(({ code }) => code.length === 2))
+  };
+  entry(legacy, '14').person = 'lumberjack';
+  entry(legacy, '37').action = 'pours';
+  entry(legacy, '99').action = 'chews';
+  await chooseImport(page, 'legacy.json', legacy);
+  await expect(page.locator('#table-message')).toHaveText('Imported \u201cLegacy table\u201d: 100 of 110 codes complete.');
+  await expect(cell(page, 'Person', '0')).toHaveValue('');
+  await expect(cell(page, 'Person', '14')).toHaveValue('lumberjack');
+  await expect(cell(page, 'Action', '37')).toHaveValue('pours');
+  await expect(cell(page, 'Action', '99')).toHaveValue('chews');
+  await numberInput(page).fill('140');
+  await expect.poll(() => sceneSlots(page)).toEqual([[['Person', '14', 'lumberjack'], ['Action', '0', 'Missing action']]]);
+  await expect(page.locator('#pao-progress-label')).toHaveText('2 of 3 digits encoded');
+  await expect(page.locator('.word-choice')).toHaveCount(0);
+  await button(page, 'Edit action for 0').click();
+  await expect(cell(page, 'Action', '0')).toBeFocused();
+  await cell(page, 'Action', '0').fill('saws');
+  await expect(page.locator('#pao-progress-label')).toHaveText('3 of 3 digits encoded');
+  await expect(cell(page, 'Action', '00')).toHaveValue('hurls');
+  const downloading = page.waitForEvent('download');
+  await button(page, 'Export table').click();
+  const exported = JSON.parse(await readFile(await (await downloading).path(), 'utf8'));
+  expect(exported.version).toBe(2);
+  expect(exported.entries).toHaveLength(110);
+  expect(exported.entries.filter(({ code }) => code.length === 2)).toEqual(legacy.entries);
+  expect(entry(exported, '0').action).toBe('saws');
+  expect([exported.license, exported.attribution]).toEqual([legacy.license, legacy.attribution]);
 });
 
 test('long numbers are encoded completely and shown in pages of scenes', async ({ page }) => {
   await openPao(page);
   const digits = '00920'.repeat(2000);
   const expected = encodePao(starter, digits);
-  expect(expected.pairCount).toBe(5000);
+  expect(expected.codeCount).toBe(5000);
   const input = numberInput(page);
   await input.fill(digits);
   await expect(page.locator('#scene-count')).toHaveText(
-    `Showing scenes 1\u201350 of ${expected.scenes.length.toLocaleString('en-US')}, from 5,000 pairs.`);
+    `Showing scenes 1\u201350 of ${expected.scenes.length.toLocaleString('en-US')}, from 5,000 codes.`);
   await expect(page.locator('#pao-scenes > li')).toHaveCount(50);
   await expect(page.locator('#pao-progress-label'))
-    .toHaveText(`${(expected.resolvedPairCount * 2).toLocaleString('en-US')} of 10,000 digits encoded`);
+    .toHaveText(`${expected.encodedDigits.toLocaleString('en-US')} of 10,000 digits encoded`);
   expect(await input.inputValue()).toBe(digits);
   await button(page, 'Show 50 more scenes').click();
   const scenes = page.locator('#pao-scenes > li');
   await expect(scenes).toHaveCount(100);
   await expect(scenes.nth(50)).toBeFocused();
   await expect(scenes.nth(50).locator('h3'))
-    .toHaveText(`Scene 51 pairs ${expected.scenes[50].slots.map((slot) => slot.code).join(' ')}`);
+    .toHaveText(`Scene 51 codes ${expected.scenes[50].slots.map((slot) => slot.code).join(' ')}`);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize().width);
 
   await input.fill(`${digits}7`);
   await expect(page.locator('#pao-scenes > li')).toHaveCount(50);
-  await expect(page.getByRole('region', { name: 'Final digit 7', exact: true })).toBeVisible();
+  await expect(page.locator('#pao-tail')).toHaveCount(0);
   await expect(page.locator('#pao-progress-label'))
-    .toHaveText(`${(expected.resolvedPairCount * 2).toLocaleString('en-US')} of 10,001 digits encoded`);
+    .toHaveText('10,001 of 10,001 digits encoded');
   expect((await input.inputValue()).length).toBe(10_001);
 });
 
@@ -331,9 +396,9 @@ test('editing associations and the table name changes every number that uses the
   await button(page, 'Edit table').click();
   await expect(page.locator('#table-editor')).toHaveAttribute('open', '');
   await expect(page.locator('#table-editor > summary')).toBeFocused();
-  await expect(page.locator('.pao-row')).toHaveCount(100);
+  await expect(page.locator('.pao-row')).toHaveCount(110);
   expect(await page.locator('.row-code').allTextContents()).toEqual(codes);
-  await expect(page.locator('#filter-count')).toHaveText('Showing all 100 codes');
+  await expect(page.locator('#filter-count')).toHaveText('Showing all 110 codes');
   const name = page.getByLabel('Table name', { exact: true });
   await expect(name).toHaveValue('DigitLoom starter PAO');
   await expect(name).toHaveAttribute('maxlength', String(PROFILE_LIMITS.name));
@@ -419,14 +484,14 @@ test('missing and duplicate associations are explicit and focus the right table 
   const find = page.getByLabel('Find', { exact: true });
   const show = page.getByLabel('Show', { exact: true });
   await show.selectOption('duplicates');
-  await expect(page.locator('#filter-count')).toHaveText('Showing 2 of 100 codes');
+  await expect(page.locator('#filter-count')).toHaveText('Showing 2 of 110 codes');
   await expect(page.locator('.pao-row:visible .row-code')).toHaveText(['32', '77']);
   await find.fill('nothing matches this');
   await expect(page.locator('#no-rows')).toBeVisible();
   await button(page, 'Edit person for 32').click();
   await expect(find).toHaveValue('');
   await expect(show).toHaveValue('all');
-  await expect(page.locator('#filter-count')).toHaveText('Showing all 100 codes');
+  await expect(page.locator('#filter-count')).toHaveText('Showing all 110 codes');
   await expect(cell(page, 'Person', '32')).toBeFocused();
   await summary.getByRole('button', { name: 'Go to person for 77', exact: true }).click();
   await expect(cell(page, 'Person', '77')).toBeFocused();
@@ -436,7 +501,7 @@ test('missing and duplicate associations are explicit and focus the right table 
   await expect(page.locator('#pao-step-title')).toHaveText('Your number is encoded.');
 
   await find.fill('5');
-  await expect(page.locator('.pao-row:visible .row-code')).toHaveText(codes.slice(50, 60));
+  await expect(page.locator('.pao-row:visible .row-code')).toHaveText(codes.filter((code) => code.startsWith('5')));
   await find.fill('LIME');
   await expect(page.locator('.pao-row:visible .row-code')).toHaveText(['53']);
   await find.fill('');
@@ -445,7 +510,7 @@ test('missing and duplicate associations are explicit and focus the right table 
   await input.fill('0877');
   await expect(page.locator('.pao-row:visible .row-code')).toHaveText(['08', '77']);
   await show.selectOption('missing');
-  await expect(page.locator('#filter-count')).toHaveText('Showing all 100 codes');
+  await expect(page.locator('#filter-count')).toHaveText('Showing all 110 codes');
 
   await input.fill('00010203040506070809');
   await expect(page.locator('#pao-step-title')).toHaveText('10 associations need attention');
@@ -473,7 +538,6 @@ test('export and import round-trip the table and its metadata, never the numbers
   await openPao(page);
   const input = numberInput(page);
   await input.fill('3277538853660');
-  await page.locator('#pao-tail .word-choice').first().click();
   await button(page, 'Edit table').click();
   const name = page.getByLabel('Table name', { exact: true });
   await name.fill('Travel table');
@@ -488,12 +552,12 @@ test('export and import round-trip the table and its metadata, never the numbers
   const exported = JSON.parse(text);
   expect(Object.keys(exported).sort()).toEqual(['attribution', 'entries', 'format', 'license', 'name', 'version']);
   expect(exported).toMatchObject({
-    format: 'digitloom-pao', version: 1, name: 'Travel table', license: starter.license, attribution: starter.attribution
+    format: 'digitloom-pao', version: 2, name: 'Travel table', license: starter.license, attribution: starter.attribution
   });
   expect(starter.license).toBe('CC-BY-SA-4.0');
   expect(starter.attribution).toContain('https://certik.github.io/digitloom/sources.html');
   expect(exported.entries.map((entry) => entry.code)).toEqual(codes);
-  expect(exported.entries[32]).toEqual({ ...starter.entries[32], peg: 'mama', person: 'Grace Hopper' });
+  expect(entry(exported, '32')).toEqual({ ...entry(starter, '32'), peg: 'mama', person: 'Grace Hopper' });
   expect(exported.entries.filter((entry) => entry.code !== '32')).toEqual(starter.entries.filter((entry) => entry.code !== '32'));
   for (const secret of ['3277538853660', '327753', '885366']) expect(text).not.toContain(secret);
   await expect(page.locator('#table-message')).toHaveText('Exported digitloom-pao.json. Import it later to continue with this table.');
@@ -523,10 +587,10 @@ test('export and import round-trip the table and its metadata, never the numbers
   await expect(name).toHaveValue('Travel table');
   await expect(page.locator('#table-license')).toHaveText(starter.license);
   await expect(page.locator('#table-attribution')).toHaveText(starter.attribution);
-  await expect(page.locator('#table-message')).toHaveText(`Imported \u201cTravel table\u201d: ${complete(starter)} of 100 codes complete.`);
+  await expect(page.locator('#table-message')).toHaveText(`Imported \u201cTravel table\u201d: ${complete(starter)} of 110 codes complete.`);
   await expect(input).toHaveValue('3277538853660');
-  await expect(page.locator('#tail-chosen')).toBeVisible();
-  await expect.poll(() => sceneSlots(page)).toEqual(expectedSlots(parseProfile(text), '327753885366'));
+  await expect(page.locator('#pao-tail')).toHaveCount(0);
+  await expect.poll(() => sceneSlots(page)).toEqual(expectedSlots(parseProfile(text), '3277538853660'));
   await expect(page.locator('#pao-scenes .slot-value').first()).toHaveText('Grace Hopper');
   expect(await leaveGuarded(page)).toBe(false);
   expect(await pageStorage(page)).toEqual({ local: 0, session: 0, cookie: '', databases: 0, caches: 0 });
@@ -542,7 +606,7 @@ test('malformed, oversized, and unsafe-looking imports never replace the table o
   for (const [name, content, reason] of [
     ['broken.json', '{"format": "digitloom-pao",', ''],
     ['format.json', { ...base, format: 'other', entries: [] }, ''],
-    ['version.json', { ...base, version: 2, entries: [] }, ''],
+    ['version.json', { ...base, version: 3, entries: [] }, ''],
     ['numeric-code.json', { ...base, entries: [{ code: 7, person: 'x' }] }, ''],
     ['short-code.json', { ...base, entries: [{ code: '7', person: 'x' }] }, ''],
     ['repeated-code.json', { ...base, entries: [{ code: '12', person: 'x' }, { code: '12', action: 'y' }] }, ''],
@@ -550,7 +614,7 @@ test('malformed, oversized, and unsafe-looking imports never replace the table o
     ['nameless.json', { ...base, name: '', entries: [] }, ''],
     ['control.json', { ...base, entries: [{ code: '01', person: 'bell\u0007' }] }, ''],
     ['long-cell.json', { ...base, entries: [{ code: '01', person: 'x'.repeat(PROFILE_LIMITS.association + 1) }] }, ''],
-    ['too-many.json', { ...base, entries: [...codes, '00'].map((code) => ({ code })) }, ''],
+    ['too-many.json', { ...base, version: 2, entries: [...codes, '00'].map((code) => ({ code })) }, ''],
     ['huge.json', Buffer.alloc(PROFILE_LIMITS.bytes + 1, 0x20), '256 KiB'],
     ['utf16.json', Buffer.from([0xff, 0xfe, 0x7b, 0x00]), 'not UTF-8 text']
   ]) {
@@ -576,7 +640,7 @@ test('malformed, oversized, and unsafe-looking imports never replace the table o
   await page.locator('#import-file').setInputFiles(profileFile('unsafe.json', unsafe));
   await expect(page.locator('#table-in-use')).toHaveText(`Using table \u201c${unsafe.name}\u201d.`);
   await expect(page.locator('#table-message'))
-    .toHaveText(`Imported \u201c${unsafe.name}\u201d: 1 of 100 codes complete. 1 duplicate value to review in the editor.`);
+    .toHaveText(`Imported \u201c${unsafe.name}\u201d: 1 of 110 codes complete. 1 duplicate value to review in the editor.`);
   await expect.poll(() => sceneSlots(page)).toEqual([[
     ['Person', '32', unsafe.entries[0].person], ['Action', '77', 'Missing action'], ['Object', '53', 'Missing object']
   ]]);
@@ -599,10 +663,10 @@ test('malformed, oversized, and unsafe-looking imports never replace the table o
     format: 'digitloom-pao', version: 1, name: 'Partial',
     entries: [{ code: '05', person: 'Ada Lovelace', action: 'knits', object: 'kettle' }, { code: '06', action: 'juggles' }]
   }));
-  await expect(page.locator('#table-message')).toHaveText('Imported \u201cPartial\u201d: 1 of 100 codes complete.');
+  await expect(page.locator('#table-message')).toHaveText('Imported \u201cPartial\u201d: 1 of 110 codes complete.');
   await expect(page.locator('#table-license')).toHaveText('None recorded');
   await expect(page.locator('#table-attribution')).toHaveText('None recorded');
-  await expect(page.locator('.pao-row')).toHaveCount(100);
+  await expect(page.locator('.pao-row')).toHaveCount(110);
   await input.fill('050605');
   await expect.poll(() => sceneSlots(page)).toEqual([[['Person', '05', 'Ada Lovelace'], ['Action', '06', 'juggles'], ['Object', '05', 'kettle']]]);
   await expect(page.locator('#pao-step-title')).toHaveText('Your number is encoded.');
@@ -799,7 +863,7 @@ test('restore and retry supersede pending imports, and newer choices supersede p
   await page.addInitScript(countStarterBodies);
   let starterMode = 'missing';
   let releaseStarter = () => {};
-  await page.route('**/data/pao-starter.json', async (route) => {
+  await page.route('**/data/pao-starter.json*', async (route) => {
     if (starterMode === 'missing') return route.fulfill({ status: 404, body: 'Not found' });
     if (starterMode === 'held') await new Promise((resolve) => { releaseStarter = resolve; });
     return route.fallback();
@@ -877,7 +941,7 @@ test('starter failures stay visible and recover by retrying, starting blank, or 
   let mode = 'missing';
   let release;
   const pending = new Promise((resolve) => { release = resolve; });
-  await page.route('**/data/pao-starter.json', async (route) => {
+  await page.route('**/data/pao-starter.json*', async (route) => {
     if (mode === 'missing') return route.fulfill({ status: 404, body: 'Not found' });
     if (mode === 'broken') return route.fulfill({ contentType: 'application/json', body: '{"format": "digitloom-pao"' });
     if (mode === 'pending') {
@@ -1006,26 +1070,40 @@ test('peg ideas load the dictionary only on request, with honest failures and re
   await expect(page.getByRole('group', { name: 'Peg ideas for 07', exact: true })).toHaveCount(0);
   await expect(page.getByRole('group', { name: 'Peg ideas for 53', exact: true })).toBeVisible();
   await numberInput(page).fill('3277537');
-  await expect(page.locator('#pao-tail .word-choice').first()).toBeVisible();
+  await expect(page.locator('#pao-scenes .slot-value').last()).toHaveText('Alladin');
+  await expect(page.locator('#pao-progress-label')).toHaveText('7 of 7 digits encoded');
   expect(requests).toEqual(['/web/data/db.txt.gz', '/web/data/db.txt.gz']);
 });
 
-test('a final-digit ending reports dictionary failures and retries without inventing words', async ({ page }) => {
+test('single-digit PAOs work without the dictionary, and their peg ideas can recover from failures', async ({ page }) => {
   let fail = true;
+  const requests = [];
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname.includes('/data/db')) requests.push(request.url());
+  });
   await page.route('**/data/db.txt.gz*', (route) => (fail ? route.fulfill({ body: Buffer.from([0x1f, 0x8b, 0x08, 0x00]) }) : route.fallback()));
   await openPao(page);
   await numberInput(page).fill('327');
-  const tail = page.getByRole('region', { name: 'Final digit 7', exact: true });
-  await expect(tail.getByRole('alert')).toContainText('DigitLoom could not open its word library.');
-  await expect(tail.locator('.word-choice')).toHaveCount(0);
-  await expect(page.locator('#pao-step-title')).toHaveText('Choose a word for the final digit');
-  await expect(page.locator('#pao-progress-label')).toHaveText('2 of 3 digits encoded');
+  await expect.poll(() => sceneSlots(page)).toEqual([[['Person', '32', 'astronaut'], ['Action', '7', 'turns']]]);
+  await expect(page.locator('#pao-progress-label')).toHaveText('3 of 3 digits encoded');
+  expect(requests).toEqual([]);
+  await button(page, 'Edit table').click();
+  await button(page, 'Ideas for peg 7').click();
+  const ideas = page.getByRole('group', { name: 'Peg ideas for 7', exact: true });
+  await expect(ideas.getByRole('alert')).toContainText('DigitLoom could not open its word library.');
+  await expect(ideas.locator('.word-choice')).toHaveCount(0);
+  await expect(page.locator('#pao-step-title')).toHaveText('Your number is encoded.');
   fail = false;
-  await tail.getByRole('button', { name: 'Try again', exact: true }).click();
-  await expect(tail.locator('.word-spelling')).toHaveText(dictionary.byCode['7'].slice(0, 24).map(([word]) => word));
-  await expect(tail.locator('.word-choice').first()).toBeFocused();
-  await expect(tail.getByRole('alert')).toBeHidden();
-  await tail.locator('.word-choice').first().click();
+  await ideas.getByRole('button', { name: 'Try again', exact: true }).click();
+  await expect(ideas.locator('.word-spelling')).toHaveText(dictionary.byCode['7'].slice(0, 24).map(([word]) => word));
+  await expect(ideas.locator('.word-choice').first()).toBeFocused();
+  await expect(ideas.getByRole('alert')).toBeHidden();
+  await expandWords(page, ideas, dictionary.byCode['7'].length);
+  await expect(ideas.locator('.recommended')).toHaveCount(dictionary.byCode['7'].filter(([, , score]) => isCommonWord(score)).length);
+  const word = dictionary.byCode['7'][0][0];
+  await ideas.getByRole('button', { name: `Use ${word} as the peg for 7`, exact: true }).click();
+  await expect(cell(page, 'Peg', '7')).toHaveValue(word);
+  await expect(cell(page, 'Peg', '07')).toHaveValue(entry(starter, '07').peg);
   await expect(page.locator('#pao-step-title')).toHaveText('Your number is encoded.');
 });
 
@@ -1062,7 +1140,7 @@ test('the PAO page, its guide, and the starter notice work at root and subdirect
   }
 });
 
-test('keyboard and touch reach the encoder, warnings, editor cells, and endings', async ({ page, isMobile }) => {
+test('keyboard and touch reach the encoder, warnings, and both widths of editor cells', async ({ page, isMobile }) => {
   await openPao(page);
   const activate = (locator) => (isMobile ? locator.tap() : locator.press('Enter'));
   await button(page, 'New blank table').focus();
@@ -1092,11 +1170,12 @@ test('keyboard and touch reach the encoder, warnings, editor cells, and endings'
   await page.keyboard.type('bartender');
   await expect(page.locator('#pao-step-title')).toHaveText('Your number is encoded.');
   await input.fill('53037');
-  const firstEnding = page.locator('#pao-tail .word-choice').first();
-  await activate(firstEnding);
-  await expect(button(page, 'Undo ending')).toBeFocused();
-  await activate(button(page, 'Undo ending'));
-  await expect(firstEnding).toBeFocused();
+  await expect(page.locator('#pao-progress-label')).toHaveText('4 of 5 digits encoded');
+  await activate(button(page, 'Edit object for 7'));
+  await expect(cell(page, 'Object', '7')).toBeFocused();
+  await page.keyboard.type('a key');
+  await expect(page.locator('#pao-progress-label')).toHaveText('5 of 5 digits encoded');
+  await expect(cell(page, 'Object', '07')).toHaveValue('');
   const outline = await cell(page, 'Person', '53').evaluate((element) => {
     element.focus();
     const style = getComputedStyle(element);
@@ -1121,7 +1200,8 @@ test('the encoder and table editor fit narrow screens and wider fonts', async ({
     await button(page, 'Ideas for peg 32').click();
     await expect(page.getByRole('group', { name: 'Peg ideas for 32', exact: true }).locator('.word-choice').first()).toBeVisible();
     await expect(page.locator('#pao-scenes .slot-value').first()).toHaveText(long);
-    await expect(page.locator('#pao-tail .word-choice').first()).toBeVisible();
+    await expect(page.locator('#pao-scenes .slot[data-code="0"] .slot-value')).toHaveText('lumberjack');
+    await expect(page.locator('#pao-tail')).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
     expect(await domProblems(page)).toEqual({ duplicateIds: [], missingReferences: [] });
     const narrow = viewport.width <= 760;

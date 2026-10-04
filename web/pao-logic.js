@@ -1,4 +1,9 @@
 export const PAO_ROLES = Object.freeze(['person', 'action', 'object']);
+export const PAO_VERSION = 2;
+export const PAO_CODES = Object.freeze([
+  ...Array.from({ length: 10 }, (_, index) => String(index)),
+  ...Array.from({ length: 100 }, (_, index) => String(index).padStart(2, '0'))
+]);
 
 // `bytes` caps an imported or exported file's UTF-8 size; the others count code points after trimming.
 export const PROFILE_LIMITS = Object.freeze({
@@ -10,9 +15,8 @@ export const PROFILE_LIMITS = Object.freeze({
 });
 
 const FORMAT = 'digitloom-pao';
-const VERSION = 1;
-const CODES = Array.from({ length: 100 }, (_, index) => String(index).padStart(2, '0'));
-const CODE_PATTERN = /^[0-9]{2}$/;
+const CODE_PATTERN = /^[0-9]{1,2}$/;
+const PAIR_CODE_PATTERN = /^[0-9]{2}$/;
 const DIGITS_PATTERN = /^[0-9]*$/;
 const CELLS = ['peg', ...PAO_ROLES];
 const METADATA = ['name', 'license', 'attribution'];
@@ -84,14 +88,19 @@ function readText(raw, label, limit, required = false) {
   return text;
 }
 
-function readCode(code, position) {
-  if (typeof code === 'string' && CODE_PATTERN.test(code)) return code;
-  const entry = `Entry ${position}`;
-  if (code === undefined) fail(`${entry} needs a "code" such as "07".`);
-  if (typeof code === 'number') {
-    fail(`${entry} uses the number ${code} as its code; write codes as two-digit text such as "07" so leading zeros survive.`);
+function readCode(code, position, version) {
+  if (typeof code === 'string' && CODE_PATTERN.test(code)) {
+    if (version === 1 && !PAIR_CODE_PATTERN.test(code)) {
+      fail(`Single-digit code "${code}" requires PAO table version 2; version 1 supports only two-digit codes.`);
+    }
+    return code;
   }
-  fail(`${entry} has an invalid code (${describe(code)}); codes are two digits from "00" to "99" written as text.`);
+  const entry = `Entry ${position}`;
+  if (code === undefined) fail(`${entry} needs a "code" such as "0" or "07".`);
+  if (typeof code === 'number') {
+    fail(`${entry} uses the number ${code} as its code; write codes as text such as "0" or "07" so single digits and pairs stay distinct.`);
+  }
+  fail(`${entry} has an invalid code (${describe(code)}); use one or two digits written as text, from "0" to "9" or "00" to "99".`);
 }
 
 function rejectUnknownFields(object, allowed, label) {
@@ -110,11 +119,11 @@ function blankEntry(code) {
 export function createBlankProfile(name = 'My PAO table') {
   return {
     format: FORMAT,
-    version: VERSION,
+    version: PAO_VERSION,
     name: readText(name, 'The table name', PROFILE_LIMITS.name, true),
     license: '',
     attribution: '',
-    entries: CODES.map((code) => blankEntry(code))
+    entries: PAO_CODES.map((code) => blankEntry(code))
   };
 }
 
@@ -127,10 +136,10 @@ export function normalizeProfile(value) {
       : `This is not a DigitLoom PAO table: its "format" is ${describe(format)}, not "${FORMAT}".`);
   }
   const version = own(value, 'version');
-  if (version !== VERSION) {
+  if (version !== 1 && version !== PAO_VERSION) {
     fail(version === undefined
-      ? `This PAO table has no "version"; DigitLoom reads version ${VERSION}.`
-      : `Unsupported PAO table version (${describe(version)}); DigitLoom reads version ${VERSION}.`);
+      ? 'This PAO table has no "version"; DigitLoom reads versions 1 and 2.'
+      : `Unsupported PAO table version (${describe(version)}); DigitLoom reads versions 1 and 2.`);
   }
   rejectUnknownFields(value, PROFILE_FIELDS, 'The PAO table');
   const name = readText(own(value, 'name'), 'The table name', PROFILE_LIMITS.name, true);
@@ -142,14 +151,15 @@ export function normalizeProfile(value) {
       ? 'The PAO table needs an "entries" list.'
       : `The PAO table's "entries" must be a list, not ${describe(entries)}.`);
   }
-  if (entries.length > CODES.length) {
-    fail(`A PAO table has at most ${CODES.length} rows, one per code from 00 to 99; this one has ${entries.length}.`);
+  const maximumRows = version === 1 ? 100 : PAO_CODES.length;
+  if (entries.length > maximumRows) {
+    fail(`A version-${version} PAO table has at most ${maximumRows} rows; this one has ${entries.length}.`);
   }
   const rows = new Map();
   for (let index = 0; index < entries.length; index += 1) {
     const entry = entries[index];
     if (!isRecord(entry)) fail(`Entry ${index + 1} must be an object, not ${describe(entry)}.`);
-    const code = readCode(own(entry, 'code'), index + 1);
+    const code = readCode(own(entry, 'code'), index + 1, version);
     if (rows.has(code)) fail(`Code ${code} appears in more than one row.`);
     rejectUnknownFields(entry, ENTRY_FIELDS, `The row for code ${code}`);
     const row = { code };
@@ -161,11 +171,11 @@ export function normalizeProfile(value) {
   }
   return {
     format: FORMAT,
-    version: VERSION,
+    version: PAO_VERSION,
     name,
     license,
     attribution,
-    entries: CODES.map((code) => rows.get(code) ?? blankEntry(code))
+    entries: PAO_CODES.map((code) => rows.get(code) ?? blankEntry(code))
   };
 }
 
@@ -257,7 +267,7 @@ function indexRows(profile) {
     const entry = entries[index];
     const code = entry !== null && typeof entry === 'object' ? entry.code : undefined;
     if (typeof code !== 'string' || !CODE_PATTERN.test(code)) {
-      throw new TypeError(`PAO entry ${index + 1} needs a two-digit text code such as "07".`);
+      throw new TypeError(`PAO entry ${index + 1} needs a one- or two-digit text code such as "0" or "07".`);
     }
     if (rows.has(code)) throw new TypeError(`PAO code ${code} appears in more than one row.`);
     const row = {};
@@ -281,7 +291,7 @@ function duplicateGroups(rows) {
   const groups = [];
   for (const role of PAO_ROLES) {
     const byKey = new Map();
-    for (const code of CODES) {
+    for (const code of PAO_CODES) {
       const value = rows.get(code)?.[role];
       if (!value) continue;
       const key = comparisonKey(value);
@@ -312,24 +322,25 @@ export function encodePao(profile, digits) {
   for (const { role, codes } of duplicateGroups(rows)) {
     for (const code of codes) conflicts.set(`${role} ${code}`, codes);
   }
-  const pairCount = Math.floor(digits.length / 2);
+  const codeCount = Math.ceil(digits.length / 2);
   const scenes = [];
   const issues = [];
   const reported = new Set();
-  let resolvedPairCount = 0;
+  let resolvedCodeCount = 0;
+  let encodedDigits = 0;
   const report = (kind, role, code, message) => {
     const key = `${kind} ${role} ${code}`;
     if (reported.has(key)) return;
     reported.add(key);
     issues.push({ kind, role, code, message });
   };
-  for (let pair = 0; pair < pairCount; pair += 1) {
-    const code = digits.slice(pair * 2, pair * 2 + 2);
-    const role = PAO_ROLES[pair % PAO_ROLES.length];
+  for (let index = 0; index < codeCount; index += 1) {
+    const code = digits.slice(index * 2, index * 2 + 2);
+    const role = PAO_ROLES[index % PAO_ROLES.length];
     const row = rows.get(code);
     const value = row?.[role] ?? '';
     const shared = value ? conflicts.get(`${role} ${code}`) : undefined;
-    if (pair % PAO_ROLES.length === 0) scenes.push({ number: scenes.length + 1, slots: [] });
+    if (index % PAO_ROLES.length === 0) scenes.push({ number: scenes.length + 1, slots: [] });
     scenes.at(-1).slots.push({ role, code, value, peg: row?.peg ?? '', duplicateCodes: shared ? [...shared] : [] });
     if (!value) {
       report('missing', role, code, `Add ${ARTICLES[role]} for ${code}.`);
@@ -337,14 +348,15 @@ export function encodePao(profile, digits) {
       report('duplicate', role, code,
         `The ${role} ${quote(value)} is shared by ${listCodes(shared)}, so ${code} is ambiguous.`);
     } else {
-      resolvedPairCount += 1;
+      resolvedCodeCount += 1;
+      encodedDigits += code.length;
     }
   }
   return {
     scenes,
-    trailingDigit: digits.length % 2 ? digits.at(-1) : '',
-    pairCount,
-    resolvedPairCount,
+    codeCount,
+    resolvedCodeCount,
+    encodedDigits,
     issues
   };
 }

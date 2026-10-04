@@ -14,8 +14,9 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/*', (route) => {
     const request = route.request();
     const url = new URL(request.url());
-    const versionedAsset = url.search === '?v=5' &&
-      /\/(?:app\.js|pao\.js|logic\.js|dictionary\.js|styles\.css|data\/db\.(?:json|txt\.gz))$/.test(url.pathname);
+    const versionedAsset = (url.search === '?v=5' &&
+      /\/(?:app\.js|logic\.js|dictionary\.js|styles\.css|data\/db\.(?:json|txt\.gz))$/.test(url.pathname)) ||
+      (url.search === '?v=2' && /\/(?:pao(?:-logic)?\.js|pao\.css|data\/pao-starter\.json)$/.test(url.pathname));
     if (request.method() !== 'GET' || (url.search && !versionedAsset)) {
       failures.push(`Unexpected ${request.method()} request: ${request.url()}`);
     }
@@ -374,15 +375,15 @@ test('versioned assets avoid stale unversioned scripts, styles, and dictionary d
   const requests = [];
   const legacyRequests = [];
   page.on('request', (request) => requests.push(new URL(request.url()).pathname + new URL(request.url()).search));
-  await page.route(/\/(?:app|pao|logic|dictionary)\.js$/, (route) => {
+  await page.route(/\/(?:app|pao|pao-logic|logic|dictionary)\.js$/, (route) => {
     legacyRequests.push(route.request().url());
     return route.fulfill({ contentType: 'text/javascript', body: 'throw new Error("Stale unversioned script");' });
   });
-  await page.route(/\/styles\.css$/, (route) => {
+  await page.route(/\/(?:styles|pao)\.css$/, (route) => {
     legacyRequests.push(route.request().url());
     return route.fulfill({ contentType: 'text/css', body: 'body { display: none !important; }' });
   });
-  await page.route(/\/data\/db\.(?:json|txt\.gz)$/, (route) => {
+  await page.route(/\/data\/(?:db\.(?:json|txt\.gz)|pao-starter\.json)$/, (route) => {
     legacyRequests.push(route.request().url());
     return route.fulfill({ body: '{}' });
   });
@@ -396,8 +397,13 @@ test('versioned assets avoid stale unversioned scripts, styles, and dictionary d
   await page.goto('/web/pao.html');
   await expect(page.locator('#pao-number')).toBeEnabled();
   await page.locator('#pao-number').fill('3277530');
-  await expect(page.locator('#pao-tail .word-choice').first()).toBeVisible();
-  expect(requests).toContain('/web/pao.js?v=5');
+  await expect(page.locator('#pao-scenes .slot[data-code="0"] .slot-value')).toHaveText('lumberjack');
+  await page.getByRole('button', { name: 'Edit table', exact: true }).click();
+  await page.getByRole('button', { name: 'Ideas for peg 0', exact: true }).click();
+  await expect(page.getByRole('group', { name: 'Peg ideas for 0', exact: true }).locator('.word-choice').first()).toBeVisible();
+  for (const asset of ['pao.js', 'pao-logic.js', 'pao.css', 'data/pao-starter.json']) {
+    expect(requests).toContain(`/web/${asset}?v=2`);
+  }
   for (const path of ['guide.html', 'sources.html']) {
     await page.goto(`/web/${path}`);
     await expect(page.getByRole('navigation', { name: 'Site', exact: true })).toBeVisible();

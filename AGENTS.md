@@ -25,8 +25,8 @@ pronunciation data and original interface design; keep the app fully static.
 | `web/app.js` | Original UI controller; loads the dictionary and renders selections, filters, validation, and length groups. |
 | `web/logic.js` | Input normalization, state transitions, frequency predicates, lookup, validation, grouping, and plain-text POS labels. |
 | `web/dictionary.js` | Strict packed-format decoder and native gzip/JSON transport. |
-| `web/pao.html` | PAO encoder page: number input, scene cards, issues, final-digit ending, table actions, and the collapsible editor. |
-| `web/pao.js` | PAO UI controller: starter loading, scenes, warnings, lazy dictionary endings and peg ideas, editing, filters, and table import/export. |
+| `web/pao.html` | PAO encoder page: number input, mixed-width scene cards, issues, table actions, and the 110-code editor. |
+| `web/pao.js` | PAO UI controller: starter loading, scenes, warnings, lazy peg ideas, string-keyed row editing, filters, and table import/export. |
 | `web/pao.css` | Styles used only by the PAO page. |
 | `web/pao-logic.js` | Pure PAO profile limits, validation, parsing, serialization, duplicate detection, and pair encoding. |
 | `web/styles.css` | DigitLoom's original responsive layout, typography, palette, and interaction styling. |
@@ -35,7 +35,7 @@ pronunciation data and original interface design; keep the app fully static.
 | `web/sources.html` | Public source credit, licenses, descriptions of data transformations, and the starter PAO table's terms. |
 | `web/data/db.json` | Canonical, tracked format-5 dictionary: source metadata and `byCode` ranked word/POS/Zipf records. |
 | `web/data/db.txt.gz` | Equivalent tracked `digitloom-columns` version-2 payload with deterministic gzip headers. |
-| `web/data/pao-starter.json` | Original, editable CC BY-SA 4.0 starter PAO table with pegs from the dictionary vocabulary. |
+| `web/data/pao-starter.json` | Editable CC BY-SA 4.0 starter PAO table with 110 codes, contributed single-digit associations, and dictionary pegs. |
 | `web/licenses/CMUdict.txt` | Upstream Carnegie Mellon dictionary notice. |
 | `web/licenses/WordNet.txt` | Upstream Princeton WordNet 3.0 notice. |
 | `web/licenses/wordfreq-NOTICE.txt` | Robyn Speer, source corpora, and SUBTLEX attribution. |
@@ -110,24 +110,29 @@ Do not drop attribution as part of UI or packaging changes.
 
 ## PAO invariants
 
-The PAO page reads decimal digits in pairs, repeating person, action, object;
-three pairs make a scene, and a final scene may have one or two slots. It has
+The PAO page reads decimal digits in pairs and a final single-digit code when
+needed, continuing person, action, object for every code. Three codes make a
+scene, and a final scene may have one or two slots. It has
 no 2-4-digit Auto split. Associations are personal: never infer roles from POS
-hints or pronunciation, never require associations to encode their pair, and
-never add them to the dictionary. A final single digit is a separate
-major-system ending chosen from the lazily loaded one-digit words. Preserve
-leading zeros; never pad, drop, or silently repair input. Editing the number
-clears the ending; Clear keeps the table.
+hints or pronunciation, never require associations to encode their code, and
+never add them to the dictionary. Odd digits use the PAO table, not a fallback
+word picker. Preserve leading zeros; never pad, drop, or silently repair
+input. Codes such as `0` and `00` are distinct: use string-keyed lookups,
+never array indexing via `Number(code)`. Clear keeps the table.
 
 Missing associations and duplicates within a role (case-, space-, and
 NFC-insensitive) are explicit warnings that focus their table cells. Progress
-counts only resolved pairs and a chosen ending; never report a number as
+counts the actual widths of resolved codes; never report a number as
 encoded while anything is unresolved. Encode long numbers completely and
-paginate their scenes. Green marks belong only to dictionary words (peg ideas
-and endings) at the default Zipf 3.5 cutoff, never to associations.
+paginate their scenes. Green marks belong only to dictionary peg ideas at the
+default Zipf 3.5 cutoff, never to associations.
 
-Profiles are `digitloom-pao` version 1 with 100 sorted `00`-`99` rows; imports
-may be partial. Keep tables in memory: no automatic storage, and no tables,
+Profiles export as `digitloom-pao` version 2 with 110 string-keyed rows:
+`0`-`9`, then `00`-`99`. Imports may be partial. Version-1 pair-only imports
+retain all their mappings and metadata and gain blank single-digit rows.
+Never apply starter collision repairs to imported personal tables. Keep the
+PAO controller/profile/style/starter asset revisions together (`?v=2`).
+Keep tables in memory: no automatic storage, and no tables,
 numbers, or scenes in URLs, storage, or requests. Only explicit Import and
 Export read or write a file; exports use the static name `digitloom-pao.json`
 and contain only the table. Ask before replacing unexported changes, reject
