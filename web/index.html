@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#f7f5f0">
   <title>DigitLoom - Give numbers a memorable shape</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=5">
+  <link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
   <a class="skip-link" href="#workspace">Skip to the word builder</a>
@@ -85,7 +85,32 @@
           <progress id="progress" max="1" value="0" aria-label="Digits encoded"></progress>
           <span id="progress-label">No digits yet</span>
         </div>
+        <p id="edit-hint" class="thread-hint" hidden>Click a selected word to replace it without moving the others.</p>
+        <section id="coverage-panel" class="coverage-panel" aria-label="Digit coverage" hidden>
+          <p id="coverage-summary" role="status"></p>
+          <div class="coverage-navigation">
+            <span id="coverage-window" tabindex="-1"></span>
+            <button id="earlier-digits" class="button secondary" type="button">Earlier digits</button>
+            <button id="later-digits" class="button secondary" type="button">Later digits</button>
+          </div>
+          <ol id="coverage-digits" class="coverage-digits" aria-label="Coverage by digit"></ol>
+          <p class="coverage-key">Dashed: unassigned. Underlined: overlapping. Outline: replacement span.</p>
+        </section>
       </div>
+      <section id="word-editor" class="word-editor" aria-labelledby="word-editor-title" hidden>
+        <div class="word-editor-heading">
+          <h2 id="word-editor-title" tabindex="-1">Replace a word</h2>
+          <button id="cancel-word-edit" class="button secondary" type="button">Cancel</button>
+        </div>
+        <p id="word-editor-range"></p>
+        <p id="word-editor-hint" class="word-editor-hint"></p>
+        <div class="word-editor-actions">
+          <button id="fit-word" class="button secondary" type="button">Fit between neighbors</button>
+          <button id="original-word-position" class="button secondary" type="button" hidden>Use current position</button>
+          <button id="show-other-lengths" class="button secondary" type="button" aria-controls="other-lengths" aria-expanded="false">Other lengths</button>
+          <button id="remove-word" class="button secondary" type="button">Remove word</button>
+        </div>
+      </section>
       <noscript><p class="error">DigitLoom needs JavaScript to search the dictionary in your browser.</p></noscript>
     </section>
 
@@ -94,8 +119,13 @@
       <p id="empty-options" class="empty-options" hidden></p>
       <button id="show-all-words" class="button secondary" type="button" hidden>Show all words</button>
       <div id="options"></div>
+      <details id="other-lengths" class="other-lengths" hidden>
+        <summary>Other lengths</summary>
+        <p>These choices change the span of just this word. Neighboring words stay in place, so gaps or overlaps may need repair.</p>
+        <div id="other-options"></div>
+      </details>
     </section>
   </main>
-  <script type="module" src="app.js?v=5"></script>
+  <script type="module" src="app.js?v=6"></script>
 </body>
 </html>

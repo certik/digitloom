@@ -15,7 +15,9 @@ test.beforeEach(async ({ page }) => {
     const request = route.request();
     const url = new URL(request.url());
     const versionedAsset = (url.search === '?v=5' &&
-      /\/(?:app\.js|logic\.js|dictionary\.js|styles\.css|data\/db\.(?:json|txt\.gz))$/.test(url.pathname)) ||
+      /\/(?:logic\.js|dictionary\.js|data\/db\.(?:json|txt\.gz))$/.test(url.pathname)) ||
+      (url.search === '?v=6' && /\/(?:app\.js|styles\.css)$/.test(url.pathname)) ||
+      (url.search === '?v=1' && /\/word-thread\.js$/.test(url.pathname)) ||
       (url.search === '?v=2' && /\/(?:pao(?:-logic)?\.js|pao\.css|data\/pao-starter\.json)$/.test(url.pathname));
     if (request.method() !== 'GET' || (url.search && !versionedAsset)) {
       failures.push(`Unexpected ${request.method()} request: ${request.url()}`);
@@ -375,7 +377,7 @@ test('versioned assets avoid stale unversioned scripts, styles, and dictionary d
   const requests = [];
   const legacyRequests = [];
   page.on('request', (request) => requests.push(new URL(request.url()).pathname + new URL(request.url()).search));
-  await page.route(/\/(?:app|pao|pao-logic|logic|dictionary)\.js$/, (route) => {
+  await page.route(/\/(?:app|word-thread|pao|pao-logic|logic|dictionary)\.js$/, (route) => {
     legacyRequests.push(route.request().url());
     return route.fulfill({ contentType: 'text/javascript', body: 'throw new Error("Stale unversioned script");' });
   });
@@ -391,9 +393,11 @@ test('versioned assets avoid stale unversioned scripts, styles, and dictionary d
   await expect(page.locator('#number')).toBeEnabled();
   await page.locator('#number').fill('32');
   await expect(choose(page, 'moon', '32')).toBeVisible();
-  for (const asset of ['app.js', 'logic.js', 'dictionary.js', 'styles.css', 'data/db.txt.gz']) {
+  for (const asset of ['logic.js', 'dictionary.js', 'data/db.txt.gz']) {
     expect(requests).toContain(`/web/${asset}?v=5`);
   }
+  for (const asset of ['app.js', 'styles.css']) expect(requests).toContain(`/web/${asset}?v=6`);
+  expect(requests).toContain('/web/word-thread.js?v=1');
   await page.goto('/web/pao.html');
   await expect(page.locator('#pao-number')).toBeEnabled();
   await page.locator('#pao-number').fill('3277530');
@@ -665,7 +669,9 @@ test('guide, source notices, and navigation work at root and subdirectory URLs',
     await expect(page).toHaveTitle('How it works - DigitLoom');
     await expect(page.getByRole('link', { name: 'GitHub', exact: true }))
       .toHaveAttribute('href', 'https://github.com/certik/digitloom');
-    await expect(page.locator('.example')).toContainText('3277 becomes moon cake');
+    await expect(page.locator('#moon-cake-example')).toContainText('3277 becomes moon cake');
+    await expect(page.locator('#word-editing-example')).toContainText('niobium (293)');
+    await expect(page.locator('#word-editing-example')).toContainText('Fit between neighbors: 45');
     await page.getByRole('link', { name: 'Data & licenses', exact: true }).click();
     await expect(page).toHaveTitle('Data & licenses - DigitLoom');
     await expect(page.getByRole('link', { name: 'GitHub', exact: true }))

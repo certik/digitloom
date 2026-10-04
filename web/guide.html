@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>How it works - DigitLoom</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=5">
+  <link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
   <header class="site-header">
@@ -25,7 +25,7 @@
       work with. The major system connects ten digits to ten families of speech
       sounds, so you can turn a number into words and imagine a scene.</p>
     <h2>Start with a small scene</h2>
-    <div class="example">
+    <div class="example" id="moon-cake-example">
       <p><strong>3277 becomes moon cake.</strong> In <em>moon</em>, m gives 3
         and n gives 2. In <em>cake</em>, the two k sounds give 77.</p>
       <p>Picture a cake so enormous that it rests on the moon. The stranger the
@@ -80,6 +80,43 @@
       digit remains, one-digit words are offered. There is no five-digit limit:
       long words can cover longer stretches, and a sequence can encode a number
       of any length.</p>
+    <h2>Change one word, keep the rest</h2>
+    <p>Click a selected word to replace it without rebuilding the sentence.
+      Its starting digit stays fixed, with same-length choices shown first.
+      Open <strong>Other lengths</strong> for shorter or longer alternatives.
+      Other words never move automatically.</p>
+    <p>A shorter replacement can leave a dashed <strong>Unassigned</strong>
+      block. Click it to fill those digits; even a one-digit gap in the middle
+      can have its own word. A longer replacement can share digits with a
+      neighbor. Both words show <strong>Overlap</strong>, and the coverage
+      strip identifies the shared positions. The input never duplicates
+      those digits. A thread is complete only when every digit is covered
+      exactly once.</p>
+    <p>Click a neighboring word and choose <strong>Fit between neighbors</strong>
+      to preview the available span after preceding words and before the next
+      word. Nothing changes until you choose a replacement.
+      <strong>Use current position</strong> restores the original replacement
+      span; <strong>Cancel</strong> or Escape leaves the selection untouched.
+      If there is no space between neighbors, remove or adjust a word first.</p>
+    <div class="example" id="word-editing-example">
+      <p>Suppose <code>4350 29 345 23 405 97</code> is
+        <em>harmless / unhappy / merely / naomi / russel / buck</em>.
+        Replace <em>unhappy (29)</em> with <em>niobium (293)</em>.
+        It overlaps the first digit of <em>merely (345)</em>, but all the
+        other words remain in place.</p>
+      <p>Click <em>merely</em>, choose <strong>Fit between neighbors: 45</strong>,
+        and select <em>real (45)</em>. Now the number splits as
+        <code>4350 293 45 23 405 97</code>. The changed middle fits again,
+        without redoing <em>harmless</em>, <em>naomi</em>, <em>russel</em>,
+        or <em>buck</em>. Turn off Common words only to see <em>niobium</em>,
+        which is below the default cutoff.</p>
+    </div>
+    <p><strong>Remove word</strong> removes just the word being edited.
+      <strong>Undo change</strong> reverses the latest replacement or removal;
+      <strong>Undo word</strong> reverses an addition. Filters still apply to
+      replacement choices. Auto split is only for adding words at the end,
+      so editing also offers one-digit words and other lengths while keeping
+      the rest of the thread intact.</p>
     <h2>Show just the common words</h2>
     <p>Open <strong>Filter</strong> beside the input and check
       <strong>Common words only</strong> to hide the white alternatives and
@@ -112,7 +149,7 @@
     <p>Switch Auto split off to explore all word lengths again. Switching modes
       keeps your selected words and changes only the remaining digits.
       <strong>Undo word</strong> restores the previous digits and replans them;
-      editing starts over. <strong>Clear</strong> keeps your chosen mode.
+      editing the number starts over. <strong>Clear</strong> keeps your chosen mode.
       If no complete automatic split exists, the builder asks you to turn
       Auto split off rather than silently changing modes.</p>
     <h2>A little help from grammar</h2>

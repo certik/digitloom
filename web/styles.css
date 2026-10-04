@@ -53,7 +53,14 @@ h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 500; font-size
 .sequence-row { display: flex; align-items: flex-start; gap: 0.65rem; margin-top: 0.75rem; }
 .sequence-row > .button { flex: none; }
 .sequence { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0; margin: 0; list-style: none; }
-.sequence li { max-width: 100%; background: #eaf0e7; border-radius: 0.5rem; padding: 0.45rem 0.75rem; overflow-wrap: anywhere; font-weight: 650; }
+.sequence li { max-width: 100%; }
+.thread-word, .thread-gap { display: block; max-width: 100%; min-height: 44px; border: 1px solid transparent; border-radius: 0.5rem; padding: 0.4rem 0.7rem; overflow-wrap: anywhere; text-align: left; color: var(--ink); font-weight: 650; line-height: 1.6; background: #eaf0e7; }
+.thread-word:hover { background: #dfe9da; }
+.thread-word[aria-pressed="true"], .thread-gap[aria-pressed="true"] { outline: 3px solid var(--focus); outline-offset: 2px; }
+.thread-word.has-overlap { border-color: #a85a1f; }
+.thread-word-warning { display: block; color: #7a3d12; font-size: 0.7rem; font-weight: 400; }
+.thread-gap { background: var(--paper); border: 1px dashed #8e7560; font-size: 0.8rem; font-weight: 400; }
+.thread-hint { margin: 0.5rem 0 0; color: var(--muted); font-size: 0.8rem; }
 .sequence small { display: block; font-size: 0.7rem; color: var(--muted); font-family: ui-monospace, monospace; font-weight: 400; }
 .progress-row { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.5rem; font-size: 0.75rem; color: var(--muted); }
 progress { flex: 1; min-width: 0; height: 0.4rem; accent-color: var(--progress-fill); border: 0; border-radius: 1rem; overflow: hidden; background: #e3e9df; }
@@ -92,6 +99,27 @@ progress::-moz-progress-bar { background: var(--progress-fill); }
 .word-choice.recommended { background: #e6efe0; border-color: #9bae94; }
 .word-choice.recommended:hover { background: #dbe7d3; border-color: #7c937d; }
 .word-grammar { color: var(--muted); font-size: 0.68rem; margin-top: 0.1rem; }
+.coverage-panel { margin-top: 0.75rem; padding: 0.75rem; border: 1px solid var(--line); border-radius: 0.5rem; background: var(--paper); }
+.coverage-panel.has-problems { border-color: #c69a72; }
+#coverage-summary { margin: 0 0 0.5rem; font-size: 0.85rem; }
+.coverage-navigation { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; color: var(--muted); font-size: 0.75rem; }
+.coverage-navigation > span { margin-right: auto; }
+.coverage-digits { display: flex; flex-wrap: wrap; gap: 0.3rem; padding: 0; margin: 0; list-style: none; }
+.coverage-digit { min-width: 1.4rem; padding: 0.2rem 0.25rem; border: 1px solid var(--line); border-radius: 0.2rem; background: #eaf0e7; color: var(--ink); text-align: center; font-family: ui-monospace, monospace; }
+.coverage-digit.is-unassigned { border-style: dashed; border-color: #8e7560; background: var(--paper); }
+.coverage-digit.is-overlapping { border-color: #a85a1f; background: #fff0d9; text-decoration: underline double; text-underline-offset: 0.1em; }
+.coverage-digit.is-editing { outline: 2px solid var(--focus); outline-offset: 1px; }
+.coverage-key { margin: 0.5rem 0 0; color: var(--muted); font-size: 0.7rem; }
+.word-editor { margin-top: 0.75rem; padding: 0.75rem; border: 1px solid var(--focus); border-radius: 0.5rem; background: var(--paper); }
+.word-editor-heading { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.word-editor h2 { margin: 0; font-size: 1.1rem; overflow-wrap: anywhere; }
+#word-editor-range { margin: 0.5rem 0; font-family: ui-monospace, monospace; font-size: 0.85rem; overflow-wrap: anywhere; }
+.word-editor-hint { margin: 0 0 0.5rem; color: var(--muted); font-size: 0.8rem; }
+.word-editor-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+#remove-word { color: #8e2430; }
+.other-lengths { margin-top: 0.75rem; border-top: 1px solid var(--line); }
+.other-lengths > summary { min-height: 44px; padding-block: 0.6rem; cursor: pointer; font-size: 0.9rem; }
+.other-lengths > p { color: var(--muted); font-size: 0.85rem; }
 .error { border-left: 3px solid #a12834; color: #8e2430; padding: 0.65rem 0.9rem; background: #fff1ee; margin-block: 1rem; font-size: 0.9rem; overflow-wrap: anywhere; }
 .site-footer { margin-top: 3rem; padding-block: 1.5rem 2.5rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.75rem; }
 .site-footer p { margin-bottom: 0.4rem; }

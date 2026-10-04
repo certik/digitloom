@@ -142,7 +142,9 @@ test.beforeEach(async ({ page }) => {
     const request = route.request();
     const url = new URL(request.url());
     const versionedAsset = (url.search === '?v=5' &&
-      /\/(?:app\.js|logic\.js|dictionary\.js|styles\.css|data\/db\.(?:json|txt\.gz))$/.test(url.pathname)) ||
+      /\/(?:logic\.js|dictionary\.js|data\/db\.(?:json|txt\.gz))$/.test(url.pathname)) ||
+      (url.search === '?v=6' && /\/(?:app\.js|styles\.css)$/.test(url.pathname)) ||
+      (url.search === '?v=1' && /\/word-thread\.js$/.test(url.pathname)) ||
       (url.search === '?v=2' && /\/(?:pao(?:-logic)?\.js|pao\.css|data\/pao-starter\.json)$/.test(url.pathname));
     if (request.method() !== 'GET' || (url.search && !versionedAsset)) {
       failures.push(`Unexpected ${request.method()} request: ${request.url()}`);
@@ -1122,7 +1124,7 @@ test('the PAO page, its guide, and the starter notice work at root and subdirect
     await expect(page.getByRole('heading', { name: 'Scenes with person, action, object', exact: true })).toBeInViewport();
     await expect(page.locator('.scene-example')).toContainText('327753 becomes an astronaut who frosts a lime.');
     await expect(page.locator('main')).toContainText('Wile E. Coyote');
-    await expect(page.locator('.example')).toContainText('3277 becomes moon cake');
+    await expect(page.locator('#moon-cake-example')).toContainText('3277 becomes moon cake');
     await menu.getByRole('link', { name: 'Data & licenses', exact: true }).click();
     await expect(page).toHaveTitle('Data & licenses - DigitLoom');
     await expect(page.locator('#pao-starter + p')).toContainText('DigitLoom contributors');
