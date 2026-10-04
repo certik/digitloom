@@ -47,6 +47,9 @@ would be `https://certik.github.io/digitloom/`; a custom domain is optional.
 - Top-aligned word spellings with plain-text grammatical hints underneath.
 - A memory thread, encoded-digit progress, and Undo word shown after a choice,
   plus Clear to start over.
+- Clickable selected words with same-length replacements first, optional
+  different lengths, visible gaps/overlaps, explicit fitting between neighbors,
+  and undo for each individual change without rebuilding the rest of the thread.
 - An inline sound key with keyboard and touch support.
 - Consistent compact navigation on every page, with a bold current-page label
   and an external-link indicator for GitHub. The DigitLoom brand returns to the
@@ -59,17 +62,19 @@ would be `https://certik.github.io/digitloom/`; a custom domain is optional.
   duplicate associations and imports or exports tables as JSON without ever
   including your numbers.
 
-Each choice encodes a prefix of the remaining digits. Suggestions cover at least
-two digits while two or more remain; one-digit words handle a one-digit
-remainder. A selected word always uses the exact code on its button, even if
-another pronunciation gives that spelling a different code.
+When building normally, each choice encodes a prefix of the remaining digits.
+Suggestions cover at least two digits while two or more remain; one-digit words
+handle a one-digit remainder. Editing an existing word or filling a gap also
+allows one-digit choices, even when later words are already selected. A selected
+word always uses the exact code on its button, even if another pronunciation
+gives that spelling a different code.
 
 Auto split adds spaces at suggested word boundaries and offers words for the
 next chunk only. It prefers longer available chunks while checking that the
 rest can also be encoded, avoiding a final single digit when possible.
 For example, `952147132` splits into `9521 471 32`, which can become
 **planet rocket moon**. Turning Auto split on or off preserves selected words
-and replans only the remaining digits. Editing still starts a new thread;
+and replans only the remaining digits. Editing the number starts a new thread;
 Clear leaves the chosen mode in place. If no complete split exists, the app
 explains this instead of silently changing modes.
 
@@ -97,6 +102,45 @@ The format-5 dictionary stores each entry as `[word, pos, frequency]`.
 example, 470 means Zipf 4.70. Zero marks an unranked spelling, not a measured
 zero frequency. Retaining the original hundredths makes every supported
 cutoff accurate without replacing frequency order with a curated list.
+
+## Change a word without rebuilding the sentence
+
+Click any selected word to replace it. Its starting position stays fixed, and
+same-length alternatives appear first. Open **Other lengths** to experiment
+with shorter or longer words. Nothing shifts the other words or changes the
+target number: a shorter choice can leave unassigned digits, and a longer
+choice can overlap a neighbor. The input groups overlapping spans once rather
+than repeating their shared digits.
+
+Dashed **Unassigned** blocks let you add words to a gap, including a one-digit
+gap in the middle. Words sharing digits have an **Overlap** warning. A coverage
+strip shows exactly which positions are unassigned or shared; long numbers
+have a pageable 48-digit window. Progress counts digits covered exactly once,
+and completion requires every digit to be covered once, with no gaps or overlaps.
+
+To adjust a neighbor, click it and choose **Fit between neighbors**. This is
+an explicit preview, not an automatic shift: it offers words starting after the
+preceding words and ending before the next word. Choose a fitting replacement
+to commit it, **Use current position** to return to the word's current span,
+or **Cancel** (also Escape) to leave it unchanged. If neighbors leave no room,
+remove or adjust one of them instead.
+
+For example, start with `4350 29 345 23 405 97`:
+**harmless / unhappy / merely / naomi / russel / buck**.
+Replace **unhappy (29)** with **niobium (293)** using Other lengths. It shares
+the next `3` with **merely (345)**; all other words stay anchored. Click
+**merely**, choose **Fit between neighbors: 45**, then choose **real (45)**.
+The new split is `4350 293 45 23 405 97`, with **harmless**, **naomi**,
+**russel**, and **buck** unchanged. Niobium is below the default frequency
+cutoff, so turn off Common words only to try this example.
+
+**Remove word** removes only the active word. **Undo change** reverses the
+latest replacement or removal; **Undo word** reverses an addition, including
+one in a gap. Filters apply to replacement and gap choices without altering
+existing words. Auto split only plans normal additions at the end; it does
+not restrict explicit editing. Numbers, positions, choices, and history stay
+in the open tab, never in storage, URLs, or requests. Editing the number or
+using Clear starts over.
 
 ## PAO scenes
 

@@ -23,6 +23,7 @@ pronunciation data and original interface design; keep the app fully static.
 | `reports/compression-benchmark.json` | Measured results and input/output hashes for the current dictionary. |
 | `web/index.html` | Accessible word builder, memory thread, progress, sound key, frequency filters, and suggestions. |
 | `web/app.js` | Original UI controller; loads the dictionary and renders selections, filters, validation, and length groups. |
+| `web/word-thread.js` | Anchored word placements, inverse-patch undo, exact coverage, explicit neighbor-fit previews, and lossless input formatting. |
 | `web/logic.js` | Input normalization, state transitions, frequency predicates, lookup, validation, grouping, and plain-text POS labels. |
 | `web/dictionary.js` | Strict packed-format decoder and native gzip/JSON transport. |
 | `web/pao.html` | PAO encoder page: number input, mixed-width scene cards, issues, table actions, and the 110-code editor. |
@@ -42,9 +43,11 @@ pronunciation data and original interface design; keep the app fully static.
 | `web/licenses/CC-BY-SA-4.0.txt` | License text for frequency data and the derived combined dictionary. |
 | `test/dictionary_test.py` | Python conversion, parsing, metadata, provenance, checksum, and packing tests. |
 | `test/logic.test.mjs` | Lookup/grouping, corpus counts, all code reachability, alternate codes, and invalid data. |
+| `test/word-thread.test.mjs` | Anchored replacement, gaps/overlaps, fitting, local undo, formatting, and long-input invariants. |
 | `test/packed-dictionary.test.mjs` | Exact JSON/packed equivalence, size budget, Unicode, leading zeros, and corruption handling. |
 | `test/pao-logic.test.mjs` | PAO profile limits, normalization, parsing, serialization, duplicates, encoding, and the starter table. |
 | `test/app.spec.mjs` | Browser tests for the real UI, keyboard/touch, root/subpath hosting, notices, and transport behavior. |
+| `test/word-editing.spec.mjs` | Browser tests for the supplied sentence, anchored repairs, filtering, focus, long inputs, privacy, and hosting. |
 | `test/pao.spec.mjs` | Browser tests for PAO scenes, endings, editing, warnings, import/export, failures, privacy, and hosting. |
 
 ## Data invariants
@@ -85,8 +88,9 @@ together when a format change would make cached decoders incompatible.
 Use original DigitLoom copy and styling. The example is `3277` -> `moon cake`.
 The inline sound key must be keyboard/touch accessible without obscuring input.
 State must remain correct after editing, clearing, selecting, or undoing.
-Suggestions cover at least two digits while multiple digits remain, and one
-digit when a single digit remains.
+Normal append suggestions cover at least two digits while multiple digits
+remain, and one digit when a single digit remains. Explicit replacements and
+gap repairs also allow one-digit choices while later words remain anchored.
 Auto split is opt-in: plan complete 2-4-digit chunks, avoid a final single digit
 when possible, and preserve selected words when switching modes. With common-only
 filtering, Auto split plans complete chunks using only words at the current cutoff.
@@ -94,6 +98,18 @@ Green highlights default to Zipf 3.5, with no quota or reordering. The main-page
 Filter panel supports cutoffs 1.0-8.0 in 0.1 steps and can hide uncommon words.
 Unranked words never qualify. Filter changes preserve selections; Clear keeps
 filter settings. An empty filtered result must explain how to recover.
+
+Main-page word choices are anchored by stable IDs and zero-based positions in
+an immutable normalized target. Replacing or removing one must not move, replace,
+or drop any other placement. Every word must match its exact target slice.
+Gaps and overlaps are valid intermediate states, never completed encodings:
+progress counts exactly-once coverage. Clicking a word keeps its current start;
+Fit between neighbors is an explicit, uncommitted preview, not an automatic
+repair. Account for all preceding spans when fitting, including nested overlaps.
+Undo reverses one operation using small inverse patches. Input edits and Clear
+start a new thread; filters and Auto split preserve it. Auto split applies only
+to normal appending. Input formatting must preserve every target digit once,
+even when words overlap. Keep long-number coverage views bounded and pageable.
 
 No external scripts, fonts, analytics, API requests, or accounts at runtime.
 Retain relative asset links for project-site deployment. Keep numbers out of
