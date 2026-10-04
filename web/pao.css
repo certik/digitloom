@@ -32,17 +32,6 @@
 .slot.is-duplicate { border-left-color: #a85a1f; }
 .scene-note { margin: 0.55rem 0 0; color: var(--muted); font-size: 0.8rem; }
 .more-scenes { margin-top: 0.75rem; }
-.pao-tail { margin-top: 1rem; padding: 0.75rem 1rem; border: 1px dashed #a1b0a4; border-radius: 0.6rem; }
-.pao-tail > h3 { margin: 0 0 0.2rem; font-size: 0.95rem; }
-.tail-note { margin: 0 0 0.6rem; color: var(--muted); font-size: 0.85rem; }
-.tail-chosen { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
-.tail-result { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.2rem 0.5rem; min-width: 0; margin: 0; padding: 0.45rem 0.75rem; border-radius: 0.5rem; background: #eaf0e7; overflow-wrap: anywhere; }
-.tail-label { color: var(--muted); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
-.tail-word { font-weight: 650; }
-.tail-code { color: var(--muted); font-family: ui-monospace, monospace; font-size: 0.75rem; }
-.pao-tail .word-group { padding-top: 0.25rem; }
-.pao-tail .group-heading h4 { margin: 0; font-size: 0.95rem; }
-.pao-tail .tail-more { margin-top: 0.35rem; }
 
 .pao-table { margin-top: 2.5rem; padding-top: 1.25rem; border-top: 1px solid var(--line); }
 .pao-table-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.2rem 1rem; }

@@ -27,10 +27,11 @@ web/sources.html describes source versions, transformations, and attribution.
 scripts/dictionary-sources.json records pinned revisions and file hashes.
 
 Starter PAO table:
-web/data/pao-starter.json, the DigitLoom starter PAO, is an original table
-written by DigitLoom contributors. Its people, actions, and objects are
-original associations; its pegs are words from the CMUdict-derived dictionary
-vocabulary described above. It is distributed under Creative Commons
+web/data/pao-starter.json, the DigitLoom starter PAO, is a 110-code table
+compiled by DigitLoom contributors. It combines assembled paired examples
+with single-digit associations supplied in contributor feedback. Its pegs
+are words from the CMUdict-derived dictionary vocabulary described above.
+It is distributed under Creative Commons
 Attribution-ShareAlike 4.0 International, separately from the MIT-licensed
 software. Keep its license and attribution fields, credit DigitLoom
 contributors with a link to https://certik.github.io/digitloom/sources.html,

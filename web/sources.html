@@ -41,7 +41,7 @@
       Zipf 3.5, approximately 3.2 occurrences per million words, without a
       per-group quota. The word builder's Filter control can adjust this
       cutoff and hide lower-frequency alternatives. Unranked words are never
-      highlighted. PAO peg ideas and endings use the default cutoff.</p>
+      highlighted. PAO peg ideas use the default cutoff.</p>
     <p>The data is licensed under
       <a href="licenses/CC-BY-SA-4.0.txt">Creative Commons
       Attribution-ShareAlike 4.0 International</a>. The full
@@ -89,16 +89,22 @@
       No externally hosted decoder is needed.</p>
     <h2 id="pao-starter">The starter PAO table</h2>
     <p>The <a href="pao.html">PAO page</a> opens an editable starter table,
-      the <a href="data/pao-starter.json">DigitLoom starter PAO</a>, written by
-      DigitLoom contributors. Its people, actions, and objects are original
-      example associations for codes 00 to 99, not anyone's authoritative
-      personal table. Its pegs are words from the CMUdict-derived dictionary
+      the <a href="data/pao-starter.json?v=2">DigitLoom starter PAO</a>, compiled by
+      DigitLoom contributors. Its 110 rows combine assembled examples for
+      pairs 00 to 99 with single-digit associations supplied in contributor
+      feedback, including their names and context cues as provided. It is not
+      anyone's complete personal table. Its pegs are words from the CMUdict-derived dictionary
       described above. The starter is distributed under
       <a href="licenses/CC-BY-SA-4.0.txt">CC BY-SA 4.0</a>, separately from the
       MIT-licensed software. The file records its license and attribution,
       and exports of tables edited from it keep both fields. Credit
       DigitLoom contributors, link to this page, indicate your changes, and
       share adaptations under the same terms.</p>
+    <p>The 110-row starter changes three generated pair assignments to avoid
+      duplicates with the supplied singles: person 14 becomes
+      <em>woodpecker</em>, action 37 becomes <em>brews</em>, and action 99
+      becomes <em>gnaws</em>. Existing personal imports retain their own
+      assignments; version-1 files gain blank single-digit rows.</p>
     <p>Tables you import keep the license and attribution they contain;
       DigitLoom displays them as plain text and adds no claims of its own. A
       new blank table starts with neither. PAO associations are never merged

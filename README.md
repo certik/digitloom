@@ -53,11 +53,11 @@ would be `https://certik.github.io/digitloom/`; a custom domain is optional.
   word builder; on narrow screens, its icon keeps the menu in one compact row.
 - Leading zeros, alternate pronunciations, and arbitrarily long inputs.
 - Local gzip decoding and a JSON path for browsers without a native decoder.
-- A PAO page that reads digit pairs as person, action, and object scenes from
-  an editable 100-code table, starting from an original CC BY-SA starter
-  table. It flags missing and duplicate associations, offers a separate
-  major-system word for a final single digit, and imports or exports tables
-  as JSON without ever including your numbers.
+- A PAO page that reads pairs and a final single digit as person, action,
+  and object scenes from an editable 110-code table. Its CC BY-SA starter
+  includes contributed single-digit associations. It flags missing and
+  duplicate associations and imports or exports tables as JSON without ever
+  including your numbers.
 
 Each choice encodes a prefix of the remaining digits. Suggestions cover at least
 two digits while two or more remain; one-digit words handle a one-digit
@@ -90,7 +90,7 @@ builder explains this and offers **Show all words**; it never silently
 changes the cutoff or drops digits. Changing filters preserves selected
 words and replans only the remaining digits. Clear keeps these controls'
 settings. They live only on this page, not in URLs or browser storage.
-PAO peg ideas and single-digit endings retain the default 3.5 cutoff.
+PAO peg ideas retain the default 3.5 cutoff.
 
 The format-5 dictionary stores each entry as `[word, pos, frequency]`.
 `frequency` is the exact wordfreq Zipf score in integer hundredths: for
@@ -101,17 +101,18 @@ cutoff accurate without replacing frequency order with a curated list.
 ## PAO scenes
 
 `web/pao.html` encodes numbers with a person-action-object (PAO) table, a
-technique for fast recall that needs preparation. Every code from `00` to `99`
-has three stable associations that you learn ahead of time. A number is read
-two digits at a time in repeating person, action, object order, and every
-three pairs form one scene. There is no 2-4-digit Auto split on this page.
+technique for fast recall that needs preparation. All 110 codes, `0`-`9` and
+`00`-`99`, have three stable associations that you learn ahead of time. A number
+is read in pairs, plus one final single-digit code when its length is odd.
+Every code continues the repeating person, action, object cycle; three codes
+make one scene. There is no 2-4-digit Auto split on this page.
 With the starter table, **327753 becomes astronaut / frosts / lime**: the
 person for 32, the action for 77, and the object for 53. In a table where 88
 has the person musician, 53 the action squeezes, and 66 the object defendant,
 885366 becomes musician / squeezes / defendant.
 
 Unlike the word builder, PAO does not look up words that sound like the
-digits. Associations are personal and need not encode their pair
+digits. Associations are personal and need not encode their code
 phonetically. A person can be an animal or a character, such as
 Wile E. Coyote for 08, and an object can be a person. Roles are positions in
 a scene, not parts of speech: DigitLoom never infers them from POS hints and
@@ -122,23 +123,35 @@ that anchors each code, such as moon for 32.
   ignored, other characters are rejected, and digits are never padded,
   dropped, or rewritten in the input.
 - A final scene with only a person, or a person and an action, is valid.
-- A single final digit is not a PAO pair. The page then loads the dictionary
-  and offers one-digit major-system words as a separate ending that can be
-  chosen or undone. Editing the number clears it; Clear resets the number and
-  output but keeps the table.
+- A single final digit uses its PAO row in the next role, not an ordinary
+  dictionary word and not an invented zero-padded pair. For example, `324`
+  uses the action for `4`, `32774` uses its object, and `3277534` starts a new
+  scene with its person. `0` and `00` are different codes. Editing recomputes
+  the scenes; Clear resets the number and output but keeps the table.
 - Blank associations are reported as missing, and a value used for more than
   one code in the same role is reported as ambiguous, ignoring case, spacing,
   and Unicode composition. Each warning focuses the matching table cell.
-  Progress counts only resolved pairs and a chosen ending, so a number is not
-  reported as encoded while anything is unresolved.
+  Progress adds the actual width of each resolved code: two digits for a pair,
+  one for a single. A number is not reported as encoded while anything is
+  unresolved.
 - Long numbers are encoded completely and displayed 50 scenes at a time.
 
 The collapsible table editor has a name field and single-line peg, person,
 action, and object fields for each fixed code, with search and filters for
-codes in the current number, missing associations, and duplicates.
+single-digit codes, two-digit codes, codes in the current number, missing
+associations, and duplicates.
 **Ideas** loads the dictionary only when asked and suggests words whose
-complete code is exactly that pair, with the word builder's green
-common-word marks. Changing an association changes it for every number.
+complete code is exactly the selected single digit or pair, with the word
+builder's green common-word marks. Encoding itself needs only the PAO table,
+even for odd-length numbers. Changing an association changes it for every number.
+
+The single-digit starter rows use associations supplied in contributor
+feedback, including their names and context cues as provided. To keep this
+110-code starter unambiguous, three generated pair assignments were changed:
+person `14` is now **woodpecker**, action `37` is **brews**, and action `99`
+is **gnaws**. This avoids collisions with **lumberjack**, **pours**, and
+**chews** in the new single-digit rows. These are starter changes only;
+imported personal tables are never rewritten to match them.
 
 The table lives only in the open tab. It is not written to local storage,
 session storage, IndexedDB, URLs, or a server, and the page warns before you
@@ -157,20 +170,27 @@ with Try again, New blank table, and Import table as recovery options.
 ```json
 {
   "format": "digitloom-pao",
-  "version": 1,
+  "version": 2,
   "name": "My PAO table",
   "license": "",
   "attribution": "",
   "entries": [
+    { "code": "0", "peg": "", "person": "", "action": "", "object": "" },
     { "code": "00", "peg": "", "person": "", "action": "", "object": "" }
   ]
 }
 ```
 
-Exports always contain 100 entries sorted from `00` to `99`, one per line.
+Exports always use version 2 and contain 110 entries, `0`-`9` first and then
+`00`-`99`, one per line. Version-1 files remain importable: every pair
+association, name, license, and attribution is kept, while the ten new
+single-digit rows start blank. Fill those rows as needed for odd-length
+numbers; they are not silently populated with somebody else's associations.
 Imports may omit rows, blank cell fields, license, and attribution; these
 become empty strings. Text is trimmed, and the name is required. Codes must be
-unique two-digit strings. Unknown or repeated keys, wrong types, invalid
+unique one- or two-digit strings; numeric codes are rejected because `0` and
+`00` must stay distinct. Version-1 files may contain only pair codes.
+Unknown or repeated keys, wrong types, invalid
 Unicode, tabs, line breaks, other control characters, and oversized values are
 rejected. Limits are 256 KiB (262,144 bytes) of UTF-8 per file, and 80
 characters for names and pegs, 200 for associations, and 1,000 for license
@@ -284,10 +304,11 @@ subsequent lines are word spellings. Within-code rank, POS hints, and exact
 Zipf hundredths are preserved. Gzip level 9 omits the filename and timestamp.
 Both transport forms restore identical dictionaries.
 
-Entry scripts, shared dictionary modules, styles, and dictionary downloads
-use a fixed `?v=5` asset revision so refreshed pages do not mix older cached
-decoders with the new data format. This revision is constant: numbers,
-choices, and cutoff settings are never included in URLs or requests.
+Dictionary-related entry scripts, shared modules, styles, and downloads use
+a fixed `?v=5` asset revision; the PAO controller, profile logic, styles, and
+starter use `?v=2`. Refreshed pages therefore do not mix older cached decoders
+with new formats. These revisions are constant: numbers, choices, and cutoff
+settings are never included in URLs or requests.
 
 `reports/compression-benchmark.json` records reproducible format, gzip/Brotli,
 sharding, and browser measurements for the current assets. Reproduce them with:
@@ -315,8 +336,8 @@ packing, malformed inputs, source fingerprints, and PAO table validation and
 encoding. Playwright tests exercise the actual app on desktop and mobile:
 encoding/undo, validation, long words, sound-key interaction, local
 navigation, source notices, compressed/fallback loading, and absence of remote
-runtime requests. PAO browser tests cover scenes, partial and odd endings,
-long numbers, editing, missing and duplicate warnings, import/export,
+runtime requests. PAO browser tests cover scenes, single-digit role
+continuation, long numbers, editing, missing and duplicate warnings, import/export,
 replacement prompts, load failures, and the absence of stored data. Tests
 serve both root and subdirectory URLs.
 
@@ -326,9 +347,10 @@ Project-authored code is **MIT licensed**; see `LICENSE`.
 The combined dictionary is **CC BY-SA 4.0**, with the original source notices
 retained. The MIT code license does not relicense the datasets.
 
-The DigitLoom starter PAO table, `web/data/pao-starter.json`, is original
-content by DigitLoom contributors, with pegs from the CMUdict-derived
-dictionary vocabulary. It is also distributed under **CC BY-SA 4.0**, not the
+The DigitLoom starter PAO table, `web/data/pao-starter.json`, combines
+DigitLoom's assembled paired examples with single-digit associations supplied
+in contributor feedback, with pegs from the CMUdict-derived dictionary
+vocabulary. It is also distributed under **CC BY-SA 4.0**, not the
 MIT license. Its file records the license and an attribution linking to
 https://certik.github.io/digitloom/sources.html, and exports of edited
 starter tables keep both. Imported personal tables keep their own license and
